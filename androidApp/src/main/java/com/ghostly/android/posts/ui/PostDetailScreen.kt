@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.ghostly.android.Destination
 import com.ghostly.android.R
 import com.ghostly.android.posts.PostDetailViewModel
 import com.ghostly.android.posts.PostsConstants
@@ -117,6 +119,20 @@ fun PostDetailScreen(
                     }
                 },
                 actions = {
+                    // Edit button
+                    IconButton(
+                        onClick = {
+                            updatedPost?.let { post ->
+                                navController.navigate(Destination.EditPost(post))
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = stringResource(R.string.cd_edit_post)
+                        )
+                    }
+                    
                     if (updatedPost?.status == Filter.Drafts.key) {
                         OutlinedButton(
                             onClick = {

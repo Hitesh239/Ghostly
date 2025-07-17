@@ -51,4 +51,11 @@
     <string name="email_address">Email address</string>
     <string name="send_invitation">Send invitation</string>
     <string name="invite_people">Invite People</string>
+    <string name="edit_post">Edit Post</string>
+    <string name="save">Save</string>
+    <string name="title">Title</string>
+    <string name="excerpt">Excerpt</string>
+    <string name="content">Content</string>
+    <string name="webview_editor_placeholder">WebView editor will be implemented in the next step</string>
+    <string name="cd_edit_post">Edit post</string>
 </resources>

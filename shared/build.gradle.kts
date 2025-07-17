@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.kotlinCocoapods)
+    // alias(libs.plugins.kotlinCocoapods)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.room)
     id("com.google.devtools.ksp")
@@ -18,21 +18,21 @@ kotlin {
         }
     }
 
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
+    // iosX64()
+    // iosArm64()
+    // iosSimulatorArm64()
 
-    cocoapods {
-        summary = "Some description for the Shared Module"
-        homepage = "Link to the Shared Module homepage"
-        version = "1.0"
-        ios.deploymentTarget = "16.0"
-        podfile = project.file("../iosApp/Podfile")
-        framework {
-            baseName = "shared"
-            isStatic = true
-        }
-    }
+    // cocoapods {
+    //     summary = "Some description for the Shared Module"
+    //     homepage = "Link to the Shared Module homepage"
+    //     version = "1.0"
+    //     ios.deploymentTarget = "16.0"
+    //     podfile = project.file("../iosApp/Podfile")
+    //     framework {
+    //         baseName = "shared"
+    //         isStatic = true
+    //     }
+    // }
 
     sourceSets {
         commonMain.dependencies {
@@ -77,9 +77,9 @@ android {
 
 dependencies {
     add("kspAndroid", libs.androidx.room.compiler)
-    add("kspIosSimulatorArm64", libs.androidx.room.compiler)
-    add("kspIosX64", libs.androidx.room.compiler)
-    add("kspIosArm64", libs.androidx.room.compiler)
+    // add("kspIosSimulatorArm64", libs.androidx.room.compiler)
+    // add("kspIosX64", libs.androidx.room.compiler)
+    // add("kspIosArm64", libs.androidx.room.compiler)
     debugImplementation(libs.compose.ui.tooling)
 }
 
