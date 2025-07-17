@@ -29,8 +29,9 @@ class PostDetailViewModel(
 
     fun observePost(post: Post): StateFlow<Post?> {
         viewModelScope.launch {
-            getPostsUseCase.getPostById(post.id).collectLatest {
-                _post.emit(it)
+            getPostsUseCase.getPostById(post.id).collectLatest { dbPost ->
+                // If post is not found in database, use the passed post
+                _post.emit(dbPost ?: post)
             }
         }
         return currentPost

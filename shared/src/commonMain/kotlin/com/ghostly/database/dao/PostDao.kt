@@ -31,7 +31,7 @@ interface PostDao {
 
     @Transaction
     @Query("SELECT * FROM posts WHERE id = :postId")
-    fun getPostWithAuthorsAndTags(postId: String): Flow<PostWithAuthorsAndTags>
+    fun getPostWithAuthorsAndTags(postId: String): Flow<PostWithAuthorsAndTags?>
 
     @Transaction
     @Query("SELECT * FROM posts")

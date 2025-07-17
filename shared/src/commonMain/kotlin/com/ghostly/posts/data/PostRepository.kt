@@ -34,7 +34,7 @@ interface PostRepository {
 
     suspend fun updatePost(post: Post): Result<Post>
 
-    suspend fun getPostById(id: String): Flow<Post>
+    suspend fun getPostById(id: String): Flow<Post?>
 }
 
 @OptIn(ExperimentalPagingApi::class)
@@ -74,7 +74,13 @@ class PostRepositoryImpl(
                     title = post.title,
                     content = post.content,
                     excerpt = post.excerpt,
-                    tags = post.tags.map { com.ghostly.posts.models.TagDto(it.name) },
+                    tags = post.tags.map { tag ->
+                        com.ghostly.posts.models.TagDto(
+                            id = tag.id,
+                            name = tag.name,
+                            slug = tag.slug
+                        )
+                    },
                     status = post.status,
                     authorId = post.authors.firstOrNull()?.id,
                     featureImage = post.featureImage
@@ -141,9 +147,9 @@ class PostRepositoryImpl(
         ).flow
     }
 
-    override suspend fun getPostById(id: String): Flow<Post> {
-        return postDao.getPostWithAuthorsAndTags(id).map {
-            it.toPost()
+    override suspend fun getPostById(id: String): Flow<Post?> {
+        return postDao.getPostWithAuthorsAndTags(id).map { postWithAuthorsAndTags ->
+            postWithAuthorsAndTags?.toPost()
         }
     }
 }
