@@ -20,21 +20,12 @@ data class UpdatePostBody(
     @SerialName("author_id")
     val authorId: String? = null,
     @SerialName("feature_image")
-    val featureImage: String? = null,
-    @SerialName("updated_at")
-    val updatedAt: String? = null,
-    val visibility: String? = null,
-    @SerialName("published_at")
-    val publishedAt: String? = null,
-    val url: String? = null,
-    val slug: String? = null
+    val featureImage: String? = null
 )
 
 @Serializable
 data class TagDto(
-    val id: String? = null,
-    val name: String,
-    val slug: String? = null
+    val name: String
 )
 
 @Serializable
@@ -47,7 +38,7 @@ data class PostDto(
     val id: String,
     val title: String,
     @SerialName("html")
-    val content: String? = null,
+    val content: String,
     val excerpt: String?,
     @SerialName("feature_image")
     val featureImage: String?,

@@ -7,6 +7,9 @@ import com.ghostly.database.entities.TagEntity
 import com.ghostly.posts.models.Author
 import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.Tag
+import com.ghostly.posts.models.PostDto
+import com.ghostly.posts.models.AuthorDto
+import com.ghostly.posts.models.TagDto
 
 internal fun PostWithAuthorsAndTags.toPost(): Post {
     return Post(
@@ -58,5 +61,41 @@ internal fun AuthorEntity.toAuthor(): Author {
         name = name,
         profileImage = profileImage,
         slug = slug
+    )
+}
+
+internal fun AuthorDto.toAuthor(): Author {
+    return Author(
+        id = id,
+        name = name,
+        profileImage = profileImage,
+        slug = slug
+    )
+}
+
+internal fun TagDto.toTag(): Tag {
+    return Tag(
+        id = id ?: "",
+        name = name,
+        slug = slug ?: ""
+    )
+}
+
+internal fun PostDto.toPost(): Post {
+    return Post(
+        id = id,
+        slug = tags.firstOrNull()?.slug ?: "", // Assuming slug is from the first tag
+        createdAt = "", // PostDto doesn't have createdAt
+        title = title,
+        content = content ?: "",
+        featureImage = featureImage,
+        status = status,
+        publishedAt = publishedAt,
+        updatedAt = updatedAt,
+        url = url,
+        visibility = visibility,
+        excerpt = excerpt,
+        authors = authors.map { it.toAuthor() },
+        tags = tags.map { it.toTag() }
     )
 }

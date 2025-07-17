@@ -81,6 +81,9 @@ fun PostDetailScreen(
 
     val time = remember(updatedPost) { updatedPost?.getTimeFromStatus() }
 
+    println("Yoda: Original Post $post")
+    println("Yoda: Updated Post $updatedPost")
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -199,20 +202,19 @@ fun PostDetailScreen(
                     .padding(end = 2.dp),
             ) {
                 if (updatedPost?.authors?.isEmpty()?.not() == true) {
-                                    AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(updatedPost?.featureImage.takeUnless { it.isNullOrEmpty() }
-                            ?: PostsConstants.DEFAULT_PROFILE_IMAGE_URL)
-                        .crossfade(true)
-                        .size(48, 48)
-                        .build(),
-                    modifier = Modifier
-                        .padding(2.dp)
-                        .size(24.dp)
-                        .clip(CircleShape),
-                    contentDescription = stringResource(R.string.cd_author),
-                    contentScale = ContentScale.Crop
-                )
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(updatedPost?.featureImage.takeUnless { it.isNullOrEmpty() }
+                                ?: PostsConstants.DEFAULT_PROFILE_IMAGE_URL)
+                            .crossfade(true)
+                            .build(),
+                        modifier = Modifier
+                            .padding(2.dp)
+                            .aspectRatio(1f)
+                            .clip(CircleShape),
+                        contentDescription = stringResource(R.string.cd_author),
+                        contentScale = ContentScale.Crop
+                    )
                     Text(
                         modifier = Modifier
                             .padding(start = 8.dp)
@@ -239,12 +241,10 @@ fun PostDetailScreen(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(updatedPost?.featureImage)
                         .crossfade(true)
-                        .size(800, 600)
                         .build(),
                     contentDescription = null,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
+                        .fillMaxSize()
                         .clip(MaterialTheme.shapes.medium),
                     contentScale = ContentScale.Crop
                 )
