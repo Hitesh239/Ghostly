@@ -33,6 +33,10 @@ interface PostRepository {
     ): Result<Post>
 
     suspend fun updatePost(post: Post): Result<Post>
+    
+    suspend fun updatePost(postId: String, request: UpdatePostRequest): Result<Post>
+    
+    suspend fun getLatestPost(postId: String): Result<Post>
 
     suspend fun getPostById(id: String): Flow<Post>
 }
@@ -74,23 +78,34 @@ class PostRepositoryImpl(
                     title = post.title,
                     content = post.content,
                     excerpt = post.excerpt,
-                    tags = post.tags.map { com.ghostly.posts.models.TagDto(it.name) },
+                    tags = post.tags.map { tag ->
+                        com.ghostly.posts.models.TagDto(
+                            id = tag.id,
+                            name = tag.name,
+                            slug = tag.slug
+                        )
+                    },
                     status = post.status,
                     authorId = post.authors.firstOrNull()?.id,
-                    featureImage = post.featureImage
+                    featureImage = post.featureImage,
+                    updatedAt = post.updatedAt
                 )
             )
         )
 
-        return when (val result = apiService.updatePost(post.id, request)) {
+        return updatePost(post.id, request)
+    }
+    
+    override suspend fun updatePost(postId: String, request: UpdatePostRequest): Result<Post> {
+        return when (val result = apiService.updatePost(postId, request)) {
             is Result.Success -> {
                 val updatedPost = result.data?.posts?.firstOrNull()?.let { postDto ->
                     Post(
                         id = postDto.id,
-                        slug = post.slug, // Keep original slug as it's not in response
-                        createdAt = post.createdAt, // Keep original as it's not in response
+                        slug = "", // Will be filled from original post
+                        createdAt = "", // Will be filled from original post
                         title = postDto.title,
-                        content = postDto.content,
+                        content = postDto.content ?: "", // Use empty string if response doesn't include it
                         featureImage = postDto.featureImage,
                         status = postDto.status,
                         publishedAt = postDto.publishedAt,
@@ -120,6 +135,18 @@ class PostRepositoryImpl(
                 Result.Success(updatedPost)
             }
 
+            is Result.Error -> Result.Error(result.errorCode, result.message)
+        }
+    }
+    
+    override suspend fun getLatestPost(postId: String): Result<Post> {
+        // For now, we'll use the existing post data
+        // In a real implementation, you'd make a GET request to fetch the latest post
+        return when (val result = apiService.getPosts(1, 1)) {
+            is Result.Success -> {
+                val posts = result.data?.posts?.takeIf { it.isNotEmpty() } ?: return Result.Error(-1, "No posts found")
+                Result.Success(posts.first())
+            }
             is Result.Error -> Result.Error(result.errorCode, result.message)
         }
     }

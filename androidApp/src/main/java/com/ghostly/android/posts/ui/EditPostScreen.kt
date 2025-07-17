@@ -71,11 +71,15 @@ fun EditPostScreen(
     // Handle UI state changes
     LaunchedEffect(uiState) {
         val state = uiState
-        if (state is EditPostUiState.Success) {
-            navController.navigateUp()
-        } else if (state is EditPostUiState.Error) {
-            // TODO: Show error message (Snackbar or Toast)
-            println("Save error: ${state.message}")
+        when (state) {
+            is EditPostUiState.Success -> {
+                navController.navigateUp()
+            }
+            is EditPostUiState.Error -> {
+                // TODO: Show error message (Snackbar or Toast)
+                // For now, just log the error
+            }
+            else -> {}
         }
     }
     
@@ -177,7 +181,7 @@ fun EditPostScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp),
-                maxLines = Int.MAX_VALUE,
+                maxLines = 20,
                 singleLine = false
             )
             
@@ -245,7 +249,9 @@ fun TagsSection(
                 .fillMaxWidth()
                 .padding(top = 12.dp)
                 .focusRequester(focusRequester),
-            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                imeAction = ImeAction.Done
+            ),
             keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                 onDone = {
                     if (tagInput.isNotBlank()) {

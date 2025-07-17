@@ -223,7 +223,10 @@ class ApiServiceImpl(
             val token =
                 tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
             val response: HttpResponse =
-                client.put("${loginDetails.domainUrl}/api/admin/posts/${postId}/") {
+                client.put("${loginDetails.domainUrl}/api/admin/posts?formats=html&source=html") {
+                    url {
+                        appendPathSegments(postId)
+                    }
                     header("Authorization", "Ghost ${token.token}")
                     contentType(ContentType.Application.Json)
                     setBody(request)

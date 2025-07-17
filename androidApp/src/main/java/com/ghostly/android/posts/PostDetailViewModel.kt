@@ -9,8 +9,8 @@ import com.ghostly.posts.data.GetPostsUseCase
 import com.ghostly.posts.models.Filter
 import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.PostUiMessage
-import com.ghostly.posts.models.UpdateRequest
 import com.ghostly.posts.models.UpdateRequestWrapper
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -37,13 +37,35 @@ class PostDetailViewModel(
     }
 
     suspend fun changePostStatus(post: Post, status: Filter) {
+        val currentPostValue = currentPost.value ?: return
+        val updatedPost = currentPostValue.copy(
+            status = status.key,
+            updatedAt = getCurrentTimeFormatted()
+        )
         val response = editPostUseCase(
-            post.id,
+            updatedPost.id,
             UpdateRequestWrapper(
                 listOf(
-                    UpdateRequest(
-                        updatedAt = post.updatedAt ?: getCurrentTimeFormatted(),
-                        status = status.key
+                    com.ghostly.posts.models.UpdatePostBody(
+                        id = updatedPost.id,
+                        title = updatedPost.title,
+                        content = updatedPost.content,
+                        excerpt = updatedPost.excerpt,
+                        tags = updatedPost.tags.map { tag ->
+                            com.ghostly.posts.models.TagDto(
+                                id = tag.id,
+                                name = tag.name,
+                                slug = tag.slug
+                            )
+                        },
+                        status = updatedPost.status,
+                        authorId = updatedPost.authors.firstOrNull()?.id,
+                        featureImage = updatedPost.featureImage,
+                        updatedAt = updatedPost.updatedAt,
+                        visibility = updatedPost.visibility,
+                        publishedAt = updatedPost.publishedAt,
+                        url = updatedPost.url,
+                        slug = updatedPost.slug
                     )
                 )
             )
