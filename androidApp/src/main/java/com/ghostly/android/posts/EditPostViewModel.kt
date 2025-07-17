@@ -2,6 +2,7 @@ package com.ghostly.android.posts
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ghostly.posts.data.PostRepository
 import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.Tag
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,10 +10,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class EditPostViewModel : ViewModel() {
+sealed class EditPostUiState {
+    object Idle : EditPostUiState()
+    object Saving : EditPostUiState()
+    object Success : EditPostUiState()
+    data class Error(val message: String) : EditPostUiState()
+}
+
+class EditPostViewModel(
+    private val postRepository: PostRepository
+) : ViewModel() {
     
     private val _post = MutableStateFlow<Post?>(null)
     val post: StateFlow<Post?> = _post.asStateFlow()
+    
+    private val _uiState = MutableStateFlow<EditPostUiState>(EditPostUiState.Idle)
+    val uiState: StateFlow<EditPostUiState> = _uiState.asStateFlow()
     
     fun initializePost(post: Post) {
         _post.value = post
@@ -55,5 +68,18 @@ class EditPostViewModel : ViewModel() {
     
     fun getUpdatedPost(): Post? {
         return _post.value
+    }
+    
+    fun savePost() {
+        viewModelScope.launch {
+            _uiState.value = EditPostUiState.Saving
+            val post = _post.value ?: return@launch
+            
+            val result = postRepository.updatePost(post)
+            _uiState.value = when (result) {
+                is com.ghostly.network.models.Result.Success -> EditPostUiState.Success
+                is com.ghostly.network.models.Result.Error -> EditPostUiState.Error(result.message ?: "Unknown error")
+            }
+        }
     }
 } 

@@ -11,6 +11,7 @@ import com.ghostly.network.ApiService
 import com.ghostly.network.models.Result
 import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.PostsResponse
+import com.ghostly.posts.models.UpdatePostRequest
 import com.ghostly.posts.models.UpdateRequestWrapper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -18,7 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
-internal interface PostRepository {
+interface PostRepository {
     suspend fun getOnePost(): Result<PostsResponse>
 
     fun getPosts(
@@ -31,11 +32,13 @@ internal interface PostRepository {
         requestWrapper: UpdateRequestWrapper,
     ): Result<Post>
 
+    suspend fun updatePost(post: Post): Result<Post>
+
     suspend fun getPostById(id: String): Flow<Post>
 }
 
 @OptIn(ExperimentalPagingApi::class)
-internal class PostRepositoryImpl(
+class PostRepositoryImpl(
     private val apiService: ApiService,
     private val postDao: PostDao,
     private val postRemoteMediator: PostRemoteMediator,
@@ -57,6 +60,64 @@ internal class PostRepositoryImpl(
                 )
                 postDataSource.updatePost(posts.first())
                 Result.Success(posts.first())
+            }
+
+            is Result.Error -> Result.Error(result.errorCode, result.message)
+        }
+    }
+
+    override suspend fun updatePost(post: Post): Result<Post> {
+        val request = UpdatePostRequest(
+            posts = listOf(
+                com.ghostly.posts.models.UpdatePostBody(
+                    id = post.id,
+                    title = post.title,
+                    content = post.content,
+                    excerpt = post.excerpt,
+                    tags = post.tags.map { com.ghostly.posts.models.TagDto(it.name) },
+                    status = post.status,
+                    authorId = post.authors.firstOrNull()?.id,
+                    featureImage = post.featureImage
+                )
+            )
+        )
+
+        return when (val result = apiService.updatePost(post.id, request)) {
+            is Result.Success -> {
+                val updatedPost = result.data?.posts?.firstOrNull()?.let { postDto ->
+                    Post(
+                        id = postDto.id,
+                        slug = post.slug, // Keep original slug as it's not in response
+                        createdAt = post.createdAt, // Keep original as it's not in response
+                        title = postDto.title,
+                        content = postDto.content,
+                        featureImage = postDto.featureImage,
+                        status = postDto.status,
+                        publishedAt = postDto.publishedAt,
+                        updatedAt = postDto.updatedAt,
+                        url = postDto.url,
+                        visibility = postDto.visibility,
+                        excerpt = postDto.excerpt,
+                        authors = postDto.authors.map { authorDto ->
+                            com.ghostly.posts.models.Author(
+                                id = authorDto.id,
+                                name = authorDto.name,
+                                profileImage = authorDto.profileImage,
+                                slug = authorDto.slug
+                            )
+                        },
+                        tags = postDto.tags.map { tagDto ->
+                            com.ghostly.posts.models.Tag(
+                                id = "temp_${System.currentTimeMillis()}", // Temporary ID for new tags
+                                name = tagDto.name,
+                                slug = tagDto.name.lowercase().replace(" ", "-")
+                            )
+                        }
+                    )
+                } ?: return Result.Error(-1, "No post data received")
+
+                postDataSource.updatePost(updatedPost)
+                Result.Success(updatedPost)
             }
 
             is Result.Error -> Result.Error(result.errorCode, result.message)

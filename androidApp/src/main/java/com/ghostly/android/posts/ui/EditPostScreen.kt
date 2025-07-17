@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -43,6 +45,7 @@ import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowRow
 import com.ghostly.android.R
 import com.ghostly.android.posts.EditPostViewModel
+import com.ghostly.android.posts.EditPostUiState
 import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.Tag
 import org.koin.androidx.compose.koinViewModel
@@ -55,12 +58,25 @@ fun EditPostScreen(
     viewModel: EditPostViewModel = koinViewModel()
 ) {
     val currentPost by viewModel.post.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     var tagInput by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
     
     // Initialize the ViewModel with the post data
     LaunchedEffect(post) {
         viewModel.initializePost(post)
+    }
+    
+    // Handle UI state changes
+    LaunchedEffect(uiState) {
+        val state = uiState
+        if (state is EditPostUiState.Success) {
+            navController.navigateUp()
+        } else if (state is EditPostUiState.Error) {
+            // TODO: Show error message (Snackbar or Toast)
+            println("Save error: ${state.message}")
+        }
     }
     
     Scaffold(
@@ -85,14 +101,21 @@ fun EditPostScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            // TODO: Implement save functionality
-                            navController.navigateUp()
-                        }
+                            viewModel.savePost()
+                        },
+                        enabled = uiState != EditPostUiState.Saving
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Save,
-                            contentDescription = stringResource(R.string.save)
-                        )
+                        if (uiState == EditPostUiState.Saving) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Save,
+                                contentDescription = stringResource(R.string.save)
+                            )
+                        }
                     }
                 }
             )

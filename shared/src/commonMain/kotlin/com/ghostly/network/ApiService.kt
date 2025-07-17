@@ -6,6 +6,8 @@ import com.ghostly.login.models.SiteResponse
 import com.ghostly.network.models.Result
 import com.ghostly.network.models.Token
 import com.ghostly.posts.models.PostsResponse
+import com.ghostly.posts.models.UpdatePostRequest
+import com.ghostly.posts.models.UpdatePostResponse
 import com.ghostly.posts.models.UpdateRequestWrapper
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -30,6 +32,7 @@ interface ApiService {
     suspend fun getPosts(page: Int, pageSize: Int): Result<PostsResponse>
     suspend fun getSiteDetails(url: String): Result<SiteResponse>
     suspend fun publishPost(postId: String, request: UpdateRequestWrapper): Result<PostsResponse>
+    suspend fun updatePost(postId: String, request: UpdatePostRequest): Result<UpdatePostResponse>
 
     suspend fun <T> get(
         endpoint: Endpoint,
@@ -205,6 +208,41 @@ class ApiServiceImpl(
 
                 else -> {
                     Result.Success(response.body<PostsResponse>())
+                }
+            }
+        }
+
+    override suspend fun updatePost(
+        postId: String,
+        request: UpdatePostRequest,
+    ): Result<UpdatePostResponse> =
+        withContext(Dispatchers.IO) {
+            val loginDetails =
+                getLoginDetails() ?: return@withContext Result.Error(-1, "Invalid Login Details")
+
+            val token =
+                tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
+            val response: HttpResponse =
+                client.put("${loginDetails.domainUrl}/api/admin/posts/${postId}/") {
+                    header("Authorization", "Ghost ${token.token}")
+                    contentType(ContentType.Application.Json)
+                    setBody(request)
+                }
+
+            when {
+                response.status == HttpStatusCode.Unauthorized -> {
+                    return@withContext Result.Error(
+                        HttpStatusCode.Unauthorized.value,
+                        "Invalid API Key"
+                    )
+                }
+
+                response.status != HttpStatusCode.OK -> {
+                    return@withContext Result.Error(response.status.value, response.bodyAsText())
+                }
+
+                else -> {
+                    Result.Success(response.body<UpdatePostResponse>())
                 }
             }
         }
