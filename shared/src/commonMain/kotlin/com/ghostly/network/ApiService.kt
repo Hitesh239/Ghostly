@@ -33,6 +33,7 @@ interface ApiService {
     suspend fun getSiteDetails(url: String): Result<SiteResponse>
     suspend fun publishPost(postId: String, request: UpdateRequestWrapper): Result<PostsResponse>
     suspend fun updatePost(postId: String, request: UpdatePostRequest): Result<UpdatePostResponse>
+    suspend fun getPostById(postId: String): Result<UpdatePostResponse>
 
     suspend fun <T> get(
         endpoint: Endpoint,
@@ -227,6 +228,36 @@ class ApiServiceImpl(
                     header("Authorization", "Ghost ${token.token}")
                     contentType(ContentType.Application.Json)
                     setBody(request)
+                }
+
+            when {
+                response.status == HttpStatusCode.Unauthorized -> {
+                    return@withContext Result.Error(
+                        HttpStatusCode.Unauthorized.value,
+                        "Invalid API Key"
+                    )
+                }
+
+                response.status != HttpStatusCode.OK -> {
+                    return@withContext Result.Error(response.status.value, response.bodyAsText())
+                }
+
+                else -> {
+                    Result.Success(response.body<UpdatePostResponse>())
+                }
+            }
+        }
+
+    override suspend fun getPostById(postId: String): Result<UpdatePostResponse> =
+        withContext(Dispatchers.IO) {
+            val loginDetails =
+                getLoginDetails() ?: return@withContext Result.Error(-1, "Invalid Login Details")
+
+            val token =
+                tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
+            val response: HttpResponse =
+                client.get("${loginDetails.domainUrl}/api/admin/posts/${postId}/") {
+                    header("Authorization", "Ghost ${token.token}")
                 }
 
             when {

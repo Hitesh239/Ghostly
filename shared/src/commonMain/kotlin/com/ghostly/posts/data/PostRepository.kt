@@ -13,6 +13,7 @@ import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.PostsResponse
 import com.ghostly.posts.models.UpdatePostRequest
 import com.ghostly.posts.models.UpdateRequestWrapper
+import com.ghostly.posts.models.PostDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -67,6 +68,17 @@ class PostRepositoryImpl(
     }
 
     override suspend fun updatePost(post: Post): Result<Post> {
+        // First, fetch the current post data to get the updated_at field
+        val currentPostResult = apiService.getPostById(post.id)
+        if (currentPostResult is Result.Error) {
+            return Result.Error(currentPostResult.errorCode, currentPostResult.message)
+        }
+
+        val currentPost = (currentPostResult as? Result.Success)?.data?.posts?.firstOrNull() as? PostDto
+        if (currentPost == null) {
+            return Result.Error(-1, "Could not fetch current post data")
+        }
+
         val request = UpdatePostRequest(
             posts = listOf(
                 com.ghostly.posts.models.UpdatePostBody(
@@ -83,7 +95,8 @@ class PostRepositoryImpl(
                     },
                     status = post.status,
                     authorId = post.authors.firstOrNull()?.id,
-                    featureImage = post.featureImage
+                    featureImage = post.featureImage,
+                    updatedAt = currentPost.updatedAt // Include the current updated_at field from the fetched post
                 )
             )
         )
