@@ -68,6 +68,11 @@ fun EditPostScreen(
         viewModel.initializePost(post)
     }
     
+    // Debug: Log state changes
+    LaunchedEffect(currentPost) {
+        println("EditPostScreen: Post state updated - Title: ${currentPost?.title}, Tags: ${currentPost?.tags?.size}")
+    }
+    
     // Handle UI state changes
     LaunchedEffect(uiState) {
         val state = uiState
@@ -132,7 +137,10 @@ fun EditPostScreen(
             // Title field
             OutlinedTextField(
                 value = currentPost?.title ?: "",
-                onValueChange = { viewModel.updateTitle(it) },
+                onValueChange = { 
+                    println("EditPostScreen: Title changed to: $it")
+                    viewModel.updateTitle(it) 
+                },
                 label = { Text(stringResource(R.string.title)) },
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 3,
@@ -148,10 +156,14 @@ fun EditPostScreen(
                 tagInput = tagInput,
                 onTagInputChange = { tagInput = it },
                 onAddTag = { 
+                    println("EditPostScreen: Adding tag: $it")
                     viewModel.addTag(it)
                     tagInput = ""
                 },
-                onRemoveTag = { viewModel.removeTag(it) },
+                onRemoveTag = { 
+                    println("EditPostScreen: Removing tag: ${it.name}")
+                    viewModel.removeTag(it) 
+                },
                 focusRequester = focusRequester
             )
             
@@ -160,7 +172,10 @@ fun EditPostScreen(
             // Excerpt field
             OutlinedTextField(
                 value = currentPost?.excerpt ?: "",
-                onValueChange = { viewModel.updateExcerpt(it) },
+                onValueChange = { 
+                    println("EditPostScreen: Excerpt changed to: $it")
+                    viewModel.updateExcerpt(it) 
+                },
                 label = { Text(stringResource(R.string.excerpt)) },
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = Int.MAX_VALUE,

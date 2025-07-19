@@ -28,15 +28,27 @@ class EditPostViewModel(
     val uiState: StateFlow<EditPostUiState> = _uiState.asStateFlow()
     
     fun initializePost(post: Post) {
+        println("EditPostViewModel: Initializing post with title: ${post.title}")
         _post.value = post
     }
     
     fun updateTitle(newTitle: String) {
-        _post.value = _post.value?.copy(title = newTitle)
+        println("EditPostViewModel: Updating title from '${_post.value?.title}' to '$newTitle'")
+        val currentPost = _post.value
+        if (currentPost != null) {
+            val updatedPost = currentPost.copy(title = newTitle)
+            println("EditPostViewModel: Created updated post with title: ${updatedPost.title}")
+            _post.value = updatedPost
+            println("EditPostViewModel: State updated, new post title: ${_post.value?.title}")
+        } else {
+            println("EditPostViewModel: Current post is null, cannot update title")
+        }
     }
     
     fun addTag(tagName: String) {
         val currentPost = _post.value ?: return
+        println("EditPostViewModel: Adding tag '$tagName' to post with ${currentPost.tags.size} existing tags")
+        
         val updatedTags = currentPost.tags.toMutableList()
         
         // Check if tag already exists
@@ -47,22 +59,42 @@ class EditPostViewModel(
                 slug = tagName.trim().lowercase().replace(" ", "-")
             )
             updatedTags.add(newTag)
-            _post.value = currentPost.copy(tags = updatedTags)
+            val updatedPost = currentPost.copy(tags = updatedTags)
+            println("EditPostViewModel: Created updated post with ${updatedPost.tags.size} tags")
+            _post.value = updatedPost
+            println("EditPostViewModel: State updated, new tag count: ${_post.value?.tags?.size}")
+        } else {
+            println("EditPostViewModel: Tag '$tagName' already exists, skipping")
         }
     }
     
     fun removeTag(tag: Tag) {
         val currentPost = _post.value ?: return
+        println("EditPostViewModel: Removing tag '${tag.name}' from post with ${currentPost.tags.size} tags")
+        
         val updatedTags = currentPost.tags.toMutableList()
         updatedTags.remove(tag)
-        _post.value = currentPost.copy(tags = updatedTags)
+        val updatedPost = currentPost.copy(tags = updatedTags)
+        println("EditPostViewModel: Created updated post with ${updatedPost.tags.size} tags")
+        _post.value = updatedPost
+        println("EditPostViewModel: State updated, new tag count: ${_post.value?.tags?.size}")
     }
     
     fun updateExcerpt(newExcerpt: String) {
-        _post.value = _post.value?.copy(excerpt = newExcerpt)
+        println("EditPostViewModel: Updating excerpt from '${_post.value?.excerpt}' to '$newExcerpt'")
+        val currentPost = _post.value
+        if (currentPost != null) {
+            val updatedPost = currentPost.copy(excerpt = newExcerpt)
+            println("EditPostViewModel: Created updated post with excerpt: ${updatedPost.excerpt}")
+            _post.value = updatedPost
+            println("EditPostViewModel: State updated, new post excerpt: ${_post.value?.excerpt}")
+        } else {
+            println("EditPostViewModel: Current post is null, cannot update excerpt")
+        }
     }
     
     fun updateContent(newContent: String) {
+        println("EditPostViewModel: Updating content")
         _post.value = _post.value?.copy(content = newContent)
     }
     
