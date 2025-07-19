@@ -83,6 +83,13 @@ fun PostDetailScreen(
 
     println("Yoda: Original Post $post")
     println("Yoda: Updated Post $updatedPost")
+    
+    // Refresh post data from server when screen becomes active
+    LaunchedEffect(Unit) {
+        scope.launch {
+            viewModel.refreshPostFromServer(post.id)
+        }
+    }
 
     Scaffold(
         topBar = {

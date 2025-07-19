@@ -36,6 +36,18 @@ class PostDetailViewModel(
         }
         return currentPost
     }
+    
+    suspend fun refreshPostFromServer(postId: String) {
+        when (val result = getPostsUseCase.refreshPostFromServer(postId)) {
+            is Result.Success -> {
+                _post.value = result.data
+            }
+            is Result.Error -> {
+                // If refresh fails, keep the current post
+                println("Failed to refresh post from server: ${result.message}")
+            }
+        }
+    }
 
     suspend fun changePostStatus(post: Post, status: Filter) {
         val currentPostValue = currentPost.value ?: return

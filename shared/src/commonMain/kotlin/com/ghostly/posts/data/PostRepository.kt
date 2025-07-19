@@ -36,6 +36,8 @@ interface PostRepository {
     suspend fun updatePost(post: Post): Result<Post>
 
     suspend fun getPostById(id: String): Flow<Post?>
+    
+    suspend fun refreshPostFromServer(id: String): Result<Post>
 }
 
 @OptIn(ExperimentalPagingApi::class)
@@ -164,6 +166,53 @@ class PostRepositoryImpl(
     override suspend fun getPostById(id: String): Flow<Post?> {
         return postDao.getPostWithAuthorsAndTags(id).map { postWithAuthorsAndTags ->
             postWithAuthorsAndTags?.toPost()
+        }
+    }
+
+    override suspend fun refreshPostFromServer(id: String): Result<Post> {
+        return when (val result = apiService.getPostById(id)) {
+            is Result.Success -> {
+                val postDto = result.data?.posts?.firstOrNull() as? PostDto
+                if (postDto == null) {
+                    return Result.Error(-1, "Could not fetch post data from server")
+                }
+                
+                // Get the current post from database to preserve fields not in response
+                val currentPost = postDao.getPostWithAuthorsAndTags(id).first()?.toPost()
+                
+                val updatedPost = Post(
+                    id = postDto.id,
+                    slug = postDto.slug ?: currentPost?.slug ?: "",
+                    createdAt = currentPost?.createdAt ?: "", // Keep original as it's not in response
+                    title = postDto.title,
+                    content = postDto.content ?: currentPost?.content ?: "",
+                    featureImage = postDto.featureImage,
+                    status = postDto.status,
+                    publishedAt = postDto.publishedAt,
+                    updatedAt = postDto.updatedAt,
+                    url = postDto.url,
+                    visibility = postDto.visibility,
+                    excerpt = postDto.excerpt,
+                    authors = postDto.authors?.map { authorDto ->
+                        com.ghostly.posts.models.Author(
+                            id = authorDto.id,
+                            name = authorDto.name,
+                            profileImage = authorDto.profileImage,
+                            slug = authorDto.slug
+                        )
+                    } ?: currentPost?.authors ?: emptyList(),
+                    tags = postDto.tags?.map { tagDto ->
+                        com.ghostly.posts.models.Tag(
+                            id = tagDto.id ?: "temp_${System.currentTimeMillis()}",
+                            name = tagDto.name,
+                            slug = tagDto.slug ?: tagDto.name.lowercase().replace(" ", "-")
+                        )
+                    } ?: currentPost?.tags ?: emptyList()
+                )
+                postDataSource.updatePost(updatedPost)
+                Result.Success(updatedPost)
+            }
+            is Result.Error -> Result.Error(result.errorCode, result.message)
         }
     }
 }
