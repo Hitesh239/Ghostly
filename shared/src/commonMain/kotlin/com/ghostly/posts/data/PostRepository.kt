@@ -19,6 +19,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 
 interface PostRepository {
     suspend fun getOnePost(): Result<PostsResponse>
@@ -182,7 +183,7 @@ class PostRepositoryImpl(
                 
                 val updatedPost = Post(
                     id = postDto.id,
-                    slug = postDto.slug ?: currentPost?.slug ?: "",
+                    slug = currentPost?.slug ?: "", // Keep original slug as it's not in response
                     createdAt = currentPost?.createdAt ?: "", // Keep original as it's not in response
                     title = postDto.title,
                     content = postDto.content ?: currentPost?.content ?: "",

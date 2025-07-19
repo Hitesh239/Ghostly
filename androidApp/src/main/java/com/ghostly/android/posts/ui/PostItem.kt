@@ -78,7 +78,7 @@ fun PostItem(post: Post, showStatus: Boolean, onPostClick: (Post) -> Unit) {
                         .fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
-                if (post.tags.isEmpty().not()) {
+                if (post.tags.isNotEmpty()) {
                     PrimaryTag(tagName = post.tags[0].name)
                 }
                 Box(
@@ -128,42 +128,44 @@ fun PostItem(post: Post, showStatus: Boolean, onPostClick: (Post) -> Unit) {
             maxLines = 2
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(24.dp)
-                .padding(end = 2.dp),
-        ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(
-                        post.authors.get(0)?.profileImage
-                            ?: PostsConstants.DEFAULT_PROFILE_IMAGE_URL
-                    )
-                    .crossfade(true)
-                    .build(),
+        if (post.authors.isNotEmpty()) {
+            Row(
                 modifier = Modifier
-                    .aspectRatio(1f)
-                    .clip(CircleShape),
-                contentDescription = stringResource(R.string.cd_author),
-                contentScale = ContentScale.Crop
-            )
-            Text(
-                modifier = Modifier
-                    .padding(start = 4.dp)
-                    .weight(1f)
-                    .align(Alignment.CenterVertically),
-                text = post.authors[0].name,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight(600)),
-                maxLines = 1
-            )
-            Text(
-                modifier = Modifier.align(Alignment.CenterVertically),
-                text = time,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
+                    .fillMaxWidth()
+                    .height(24.dp)
+                    .padding(end = 2.dp),
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(
+                            post.authors.get(0)?.profileImage
+                                ?: PostsConstants.DEFAULT_PROFILE_IMAGE_URL
+                        )
+                        .crossfade(true)
+                        .build(),
+                    modifier = Modifier
+                        .aspectRatio(1f)
+                        .clip(CircleShape),
+                    contentDescription = stringResource(R.string.cd_author),
+                    contentScale = ContentScale.Crop
+                )
+                Text(
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .weight(1f)
+                        .align(Alignment.CenterVertically),
+                    text = post.authors[0].name,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight(600)),
+                    maxLines = 1
+                )
+                Text(
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                    text = time,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
         }
     }
 }

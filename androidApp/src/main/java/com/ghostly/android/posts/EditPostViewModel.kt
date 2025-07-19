@@ -3,6 +3,7 @@ package com.ghostly.android.posts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ghostly.posts.data.PostRepository
+import com.ghostly.posts.data.PostDataSource
 import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.Tag
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,8 @@ sealed class EditPostUiState {
 }
 
 class EditPostViewModel(
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val postDataSource: PostDataSource
 ) : ViewModel() {
     
     private val _post = MutableStateFlow<Post?>(null)
@@ -107,18 +109,27 @@ class EditPostViewModel(
             _uiState.value = EditPostUiState.Saving
             val post = _post.value ?: return@launch
             
+            println("EditPostViewModel: Sending post update to server")
             val result = postRepository.updatePost(post)
+            
             _uiState.value = when (result) {
                 is com.ghostly.network.models.Result.Success -> {
-                    // Update local state with the server response to ensure consistency
+                    // Server-first approach: Update local state with server response
                     val updatedPost = result.data
                     if (updatedPost != null) {
-                        println("EditPostViewModel: Updating local state with server response")
+                        println("EditPostViewModel: Server update successful, updating local state")
                         _post.value = updatedPost
+                        
+                        // Update the local database with server data
+                        postDataSource.updatePost(updatedPost)
+                        println("EditPostViewModel: Local database updated with server data")
                     }
                     EditPostUiState.Success
                 }
-                is com.ghostly.network.models.Result.Error -> EditPostUiState.Error(result.message ?: "Unknown error")
+                is com.ghostly.network.models.Result.Error -> {
+                    println("EditPostViewModel: Server update failed: ${result.message}")
+                    EditPostUiState.Error(result.message ?: "Unknown error")
+                }
             }
         }
     }
