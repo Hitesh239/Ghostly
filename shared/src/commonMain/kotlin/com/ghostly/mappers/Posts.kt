@@ -84,7 +84,7 @@ internal fun TagDto.toTag(): Tag {
 internal fun PostDto.toPost(): Post {
     return Post(
         id = id,
-        slug = tags.firstOrNull()?.slug ?: "", // Assuming slug is from the first tag
+        slug = slug ?: "", // Use slug from PostDto if available
         createdAt = "", // PostDto doesn't have createdAt
         title = title,
         content = content ?: "",
@@ -95,7 +95,7 @@ internal fun PostDto.toPost(): Post {
         url = url,
         visibility = visibility,
         excerpt = excerpt,
-        authors = authors.map { it.toAuthor() },
-        tags = tags.map { it.toTag() }
+        authors = authors?.map { it.toAuthor() } ?: emptyList(),
+        tags = tags?.map { it.toTag() } ?: emptyList()
     )
 }

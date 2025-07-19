@@ -47,19 +47,23 @@ data class PostDto(
     val id: String,
     val title: String,
     @SerialName("html")
-    val content: String,
-    val excerpt: String?,
+    val content: String? = null,
+    val excerpt: String? = null,
     @SerialName("feature_image")
-    val featureImage: String?,
+    val featureImage: String? = null,
     val status: String,
     @SerialName("published_at")
-    val publishedAt: String?,
+    val publishedAt: String? = null,
     @SerialName("updated_at")
-    val updatedAt: String?,
+    val updatedAt: String? = null,
     val url: String,
-    val visibility: String?,
-    val authors: List<AuthorDto>,
-    val tags: List<TagDto>
+    val visibility: String? = null,
+    val authors: List<AuthorDto>? = null,
+    val tags: List<TagDto>? = null,
+    val slug: String? = null,
+    val uuid: String? = null,
+    val lexical: String? = null,
+    val mobiledoc: String? = null
 )
 
 @Serializable

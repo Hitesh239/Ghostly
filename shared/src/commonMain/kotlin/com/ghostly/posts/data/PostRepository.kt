@@ -109,7 +109,7 @@ class PostRepositoryImpl(
                         slug = post.slug, // Keep original slug as it's not in response
                         createdAt = post.createdAt, // Keep original as it's not in response
                         title = postDto.title,
-                        content = postDto.content,
+                        content = postDto.content ?: post.content, // Use original content if not in response
                         featureImage = postDto.featureImage,
                         status = postDto.status,
                         publishedAt = postDto.publishedAt,
@@ -117,21 +117,21 @@ class PostRepositoryImpl(
                         url = postDto.url,
                         visibility = postDto.visibility,
                         excerpt = postDto.excerpt,
-                        authors = postDto.authors.map { authorDto ->
+                        authors = postDto.authors?.map { authorDto ->
                             com.ghostly.posts.models.Author(
                                 id = authorDto.id,
                                 name = authorDto.name,
                                 profileImage = authorDto.profileImage,
                                 slug = authorDto.slug
                             )
-                        },
-                        tags = postDto.tags.map { tagDto ->
+                        } ?: post.authors, // Use original authors if not in response
+                        tags = postDto.tags?.map { tagDto ->
                             com.ghostly.posts.models.Tag(
                                 id = "temp_${System.currentTimeMillis()}", // Temporary ID for new tags
                                 name = tagDto.name,
                                 slug = tagDto.name.lowercase().replace(" ", "-")
                             )
-                        }
+                        } ?: post.tags // Use original tags if not in response
                     )
                 } ?: return Result.Error(-1, "No post data received")
 

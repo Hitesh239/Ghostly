@@ -163,32 +163,13 @@ fun EditPostScreen(
                 onValueChange = { viewModel.updateExcerpt(it) },
                 label = { Text(stringResource(R.string.excerpt)) },
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = 5,
+                maxLines = Int.MAX_VALUE,
                 singleLine = false
             )
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Content field - placeholder for WebView editor
-            OutlinedTextField(
-                value = currentPost?.content ?: "",
-                onValueChange = { viewModel.updateContent(it) },
-                label = { Text(stringResource(R.string.content)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp),
-                maxLines = Int.MAX_VALUE,
-                singleLine = false
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Placeholder text for WebView editor
-            Text(
-                text = stringResource(R.string.webview_editor_placeholder),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
         }
     }
 }
