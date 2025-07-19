@@ -51,11 +51,11 @@ class PostRemoteMediator(
         return try {
             when (val postResult = apiService.getPosts(page, state.config.pageSize)) {
                 is Result.Success -> {
+                    // Clear remote keys for refresh operations
                     if (loadType == LoadType.REFRESH) {
                         remoteKeysDao.clearRemoteKeys()
-                        postDao.clearAll()
                     }
-
+                    
                     val posts = postResult.data?.posts ?: emptyList()
 
                     val endOfPaginationReached = posts.isEmpty()
@@ -68,6 +68,7 @@ class PostRemoteMediator(
                         )
                     }
 
+                    // Use PostDataSource.insertPosts which now properly clears all tables
                     postDataSource.insertPosts(posts)
                     remoteKeysDao.insertAll(remoteKeys)
                     MediatorResult.Success(endOfPaginationReached = endOfPaginationReached)

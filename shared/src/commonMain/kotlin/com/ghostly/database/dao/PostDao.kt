@@ -45,6 +45,9 @@ interface AuthorDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAuthors(authors: List<AuthorEntity>)
+    
+    @Query("DELETE FROM authors")
+    suspend fun clearAll()
 }
 
 @Dao
@@ -54,6 +57,9 @@ interface TagDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTags(tags: List<TagEntity>)
+    
+    @Query("DELETE FROM tags")
+    suspend fun clearAll()
 }
 
 @Dao
@@ -63,6 +69,9 @@ interface PostAuthorCrossRefDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPostAuthorCrossRef(crossRefs: List<PostAuthorCrossRef>)
+    
+    @Query("DELETE FROM post_author_cross_ref")
+    suspend fun clearAll()
 }
 
 @Dao
@@ -75,4 +84,7 @@ interface PostTagCrossRefDao {
     
     @Query("DELETE FROM post_tag_cross_ref WHERE postId = :postId")
     suspend fun clearPostTagCrossRefs(postId: String)
+    
+    @Query("DELETE FROM post_tag_cross_ref")
+    suspend fun clearAll()
 }

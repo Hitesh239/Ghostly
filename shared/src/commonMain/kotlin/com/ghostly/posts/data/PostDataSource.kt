@@ -25,9 +25,19 @@ class LocalPostDataSource(
     private val postTagCrossRefDao: PostTagCrossRefDao,
 ) : PostDataSource {
     override suspend fun insertPosts(posts: List<Post>) {
+        // Clear all existing data first to ensure clean state
+        postDao.clearAll()
+        authorDao.clearAll()
+        tagDao.clearAll()
+        postAuthorCrossRefDao.clearAll()
+        postTagCrossRefDao.clearAll()
+        
+        // Insert posts
         posts.map { it.toPostEntity() }.let {
             postDao.insertPosts(it)
         }
+        
+        // Insert authors
         authorDao.insertAuthors(posts.flatMap {
             it.authors.map { author ->
                 AuthorEntity(
@@ -35,6 +45,8 @@ class LocalPostDataSource(
                 )
             }
         })
+        
+        // Insert tags
         tagDao.insertTags(posts.flatMap {
             it.tags.map { tag ->
                 TagEntity(
@@ -42,6 +54,8 @@ class LocalPostDataSource(
                 )
             }
         })
+        
+        // Insert author relationships
         postAuthorCrossRefDao.insertPostAuthorCrossRef(posts.flatMap { post ->
             post.authors.map { author ->
                 PostAuthorCrossRef(
@@ -49,6 +63,8 @@ class LocalPostDataSource(
                 )
             }
         })
+        
+        // Insert tag relationships
         postTagCrossRefDao.insertPostTagCrossRef(posts.flatMap { post ->
             post.tags.map { tag ->
                 PostTagCrossRef(
