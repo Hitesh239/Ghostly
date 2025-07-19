@@ -60,6 +60,8 @@ class LocalPostDataSource(
 
     override suspend fun updatePost(post: Post) {
         postDao.updatePost(post.toPostEntity())
+        
+        // Update authors
         authorDao.insertAuthors(
             post.authors.map { author ->
                 AuthorEntity(
@@ -67,22 +69,29 @@ class LocalPostDataSource(
                 )
             }
         )
+        
+        // Update tags - first clear old relationships, then insert new ones
         tagDao.insertTags(post.tags.map { tag ->
             TagEntity(
                 tag.id, tag.name, tag.slug
             )
         })
-        postAuthorCrossRefDao.insertPostAuthorCrossRef(
-            post.authors.map { author ->
-                PostAuthorCrossRef(
-                    post.id, author.id
-                )
-            }
-        )
+        
+        // Clear old post-tag relationships and insert new ones
+        postTagCrossRefDao.clearPostTagCrossRefs(post.id)
         postTagCrossRefDao.insertPostTagCrossRef(
             post.tags.map { tag ->
                 PostTagCrossRef(
                     post.id, tag.id
+                )
+            }
+        )
+        
+        // Update author relationships
+        postAuthorCrossRefDao.insertPostAuthorCrossRef(
+            post.authors.map { author ->
+                PostAuthorCrossRef(
+                    post.id, author.id
                 )
             }
         )

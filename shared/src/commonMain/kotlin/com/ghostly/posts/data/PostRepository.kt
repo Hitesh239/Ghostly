@@ -127,14 +127,15 @@ class PostRepositoryImpl(
                         } ?: post.authors, // Use original authors if not in response
                         tags = postDto.tags?.map { tagDto ->
                             com.ghostly.posts.models.Tag(
-                                id = "temp_${System.currentTimeMillis()}", // Temporary ID for new tags
+                                id = tagDto.id ?: "temp_${System.currentTimeMillis()}", // Use server tag ID if available
                                 name = tagDto.name,
-                                slug = tagDto.name.lowercase().replace(" ", "-")
+                                slug = tagDto.slug ?: tagDto.name.lowercase().replace(" ", "-")
                             )
                         } ?: post.tags // Use original tags if not in response
                     )
                 } ?: return Result.Error(-1, "No post data received")
 
+                // Update local database with the server response
                 postDataSource.updatePost(updatedPost)
                 Result.Success(updatedPost)
             }

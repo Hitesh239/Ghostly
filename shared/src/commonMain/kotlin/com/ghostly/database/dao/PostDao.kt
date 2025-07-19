@@ -72,4 +72,7 @@ interface PostTagCrossRefDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPostTagCrossRef(crossRefs: List<PostTagCrossRef>)
+    
+    @Query("DELETE FROM post_tag_cross_ref WHERE postId = :postId")
+    suspend fun clearPostTagCrossRefs(postId: String)
 }

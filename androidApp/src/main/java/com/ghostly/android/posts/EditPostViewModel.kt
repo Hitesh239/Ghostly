@@ -109,7 +109,15 @@ class EditPostViewModel(
             
             val result = postRepository.updatePost(post)
             _uiState.value = when (result) {
-                is com.ghostly.network.models.Result.Success -> EditPostUiState.Success
+                is com.ghostly.network.models.Result.Success -> {
+                    // Update local state with the server response to ensure consistency
+                    val updatedPost = result.data
+                    if (updatedPost != null) {
+                        println("EditPostViewModel: Updating local state with server response")
+                        _post.value = updatedPost
+                    }
+                    EditPostUiState.Success
+                }
                 is com.ghostly.network.models.Result.Error -> EditPostUiState.Error(result.message ?: "Unknown error")
             }
         }
