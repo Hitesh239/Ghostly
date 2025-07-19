@@ -114,16 +114,37 @@ class EditPostViewModel(
             
             _uiState.value = when (result) {
                 is com.ghostly.network.models.Result.Success -> {
-                    // Server-first approach: Update local state with server response
-                    val updatedPost = result.data
-                    if (updatedPost != null) {
-                        println("EditPostViewModel: Server update successful, updating local state")
-                        _post.value = updatedPost
-                        
-                        // Update the local database with server data
-                        postDataSource.updatePost(updatedPost)
-                        println("EditPostViewModel: Local database updated with server data")
+                    println("EditPostViewModel: Server update successful")
+                    
+                    // Refresh the post data from server to get the latest tags
+                    println("EditPostViewModel: Refreshing post data from server")
+                    val refreshResult = postRepository.refreshPostFromServer(post.id)
+                    
+                    when (refreshResult) {
+                        is com.ghostly.network.models.Result.Success -> {
+                            val refreshedPost = refreshResult.data
+                            if (refreshedPost != null) {
+                                println("EditPostViewModel: Server refresh successful, updating local state with ${refreshedPost.tags.size} tags")
+                                _post.value = refreshedPost
+                                
+                                // Update the local database with server data
+                                postDataSource.updatePost(refreshedPost)
+                                println("EditPostViewModel: Local database updated with server data")
+                            } else {
+                                println("EditPostViewModel: Server returned null post data")
+                            }
+                        }
+                        is com.ghostly.network.models.Result.Error -> {
+                            println("EditPostViewModel: Failed to refresh post from server: ${refreshResult.message}")
+                            // Still use the update result if refresh fails
+                            val updatedPost = result.data
+                            if (updatedPost != null) {
+                                _post.value = updatedPost
+                                postDataSource.updatePost(updatedPost)
+                            }
+                        }
                     }
+                    
                     EditPostUiState.Success
                 }
                 is com.ghostly.network.models.Result.Error -> {

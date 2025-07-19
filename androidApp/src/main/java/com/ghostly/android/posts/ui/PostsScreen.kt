@@ -65,17 +65,15 @@ fun PostsScreen(
             postsViewModel.onFilterChange(postsViewModel.filters[it])
         }
 
-        if (posts.itemCount == 0) {
-            if (posts.loadState.refresh is LoadState.Loading) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .align(Alignment.Center)
-                    )
-                }
-            } else {
-                EmptyPostView(postsViewModel)
+        if (posts.itemCount == 0 && posts.loadState.refresh is LoadState.NotLoading) {
+            EmptyPostView(postsViewModel)
+        } else if (posts.loadState.refresh is LoadState.Loading) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.Center)
+                )
             }
         } else {
             val state = rememberPullToRefreshState()

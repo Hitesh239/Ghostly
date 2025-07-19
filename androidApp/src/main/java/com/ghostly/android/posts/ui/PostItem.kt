@@ -129,6 +129,7 @@ fun PostItem(post: Post, showStatus: Boolean, onPostClick: (Post) -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         if (post.authors.isNotEmpty()) {
+            val author = post.authors[0]
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -138,7 +139,7 @@ fun PostItem(post: Post, showStatus: Boolean, onPostClick: (Post) -> Unit) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(
-                            post.authors.get(0)?.profileImage
+                            author.profileImage
                                 ?: PostsConstants.DEFAULT_PROFILE_IMAGE_URL
                         )
                         .crossfade(true)
@@ -154,7 +155,7 @@ fun PostItem(post: Post, showStatus: Boolean, onPostClick: (Post) -> Unit) {
                         .padding(start = 4.dp)
                         .weight(1f)
                         .align(Alignment.CenterVertically),
-                    text = post.authors[0].name,
+                    text = author.name,
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight(600)),
                     maxLines = 1
                 )

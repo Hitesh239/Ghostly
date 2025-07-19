@@ -26,6 +26,12 @@ interface PostDao {
     @Update
     suspend fun updatePost(post: PostEntity)
 
+    @Query("SELECT * FROM posts WHERE id IN (:postIds)")
+    suspend fun getPostsByIds(postIds: List<String>): List<PostWithAuthorsAndTags>
+
+    @Update
+    suspend fun updatePosts(posts: List<PostEntity>)
+
     @Query("Delete From posts")
     suspend fun clearAll()
 

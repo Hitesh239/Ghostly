@@ -71,17 +71,9 @@ class PostRepositoryImpl(
     }
 
     override suspend fun updatePost(post: Post): Result<Post> {
-        // First, fetch the current post data to get the updated_at field
-        val currentPostResult = apiService.getPostById(post.id)
-        if (currentPostResult is Result.Error) {
-            return Result.Error(currentPostResult.errorCode, currentPostResult.message)
-        }
-
-        val currentPost = (currentPostResult as? Result.Success)?.data?.posts?.firstOrNull() as? PostDto
-        if (currentPost == null) {
-            return Result.Error(-1, "Could not fetch current post data")
-        }
-
+        println("PostRepository: Updating post ${post.id} with ${post.tags.size} tags")
+        
+        // Create the update request with the complete tag list
         val request = UpdatePostRequest(
             posts = listOf(
                 com.ghostly.posts.models.UpdatePostBody(
@@ -90,6 +82,7 @@ class PostRepositoryImpl(
                     content = post.content,
                     excerpt = post.excerpt,
                     tags = post.tags.map { tag ->
+                        println("PostRepository: Including tag: ${tag.name} (id: ${tag.id})")
                         com.ghostly.posts.models.TagDto(
                             id = tag.id,
                             name = tag.name,
@@ -99,13 +92,15 @@ class PostRepositoryImpl(
                     status = post.status,
                     authorId = post.authors.firstOrNull()?.id,
                     featureImage = post.featureImage,
-                    updatedAt = currentPost.updatedAt // Include the current updated_at field from the fetched post
+                    updatedAt = post.updatedAt // Use the current post's updatedAt
                 )
             )
         )
 
+        println("PostRepository: Sending PUT request to update post")
         return when (val result = apiService.updatePost(post.id, request)) {
             is Result.Success -> {
+                println("PostRepository: Server update successful")
                 val updatedPost = result.data?.posts?.firstOrNull()?.let { postDto ->
                     Post(
                         id = postDto.id,
@@ -138,12 +133,16 @@ class PostRepositoryImpl(
                     )
                 } ?: return Result.Error(-1, "No post data received")
 
+                println("PostRepository: Updated post has ${updatedPost.tags.size} tags")
                 // Update local database with the server response
                 postDataSource.updatePost(updatedPost)
                 Result.Success(updatedPost)
             }
 
-            is Result.Error -> Result.Error(result.errorCode, result.message)
+            is Result.Error -> {
+                println("PostRepository: Server update failed: ${result.message}")
+                Result.Error(result.errorCode, result.message)
+            }
         }
     }
 
