@@ -82,12 +82,18 @@ class PostRepositoryImpl(
                     content = post.content,
                     excerpt = post.excerpt,
                     tags = post.tags.map { tag ->
-                        println("PostRepository: Including tag: ${tag.name} (id: ${tag.id})")
-                        com.ghostly.posts.models.TagDto(
-                            id = tag.id,
-                            name = tag.name,
-                            slug = tag.slug
-                        )
+                        // Temporary tags created on the client will have an ID starting with 'temp_'
+                        val isTemporaryTag = tag.id.startsWith("temp_")
+                        
+                        println("PostRepository: Including tag: ${tag.name} (id: ${tag.id}, isTemporary: $isTemporaryTag)")
+                        
+                        if (isTemporaryTag) {
+                            // For new tags, only send the name as Ghost will generate the ID and slug
+                            com.ghostly.posts.models.TagDto(name = tag.name, slug = tag.slug)
+                        } else {
+                            // For existing tags, send the full tag details
+                            com.ghostly.posts.models.TagDto(id = tag.id, name = tag.name, slug = tag.slug)
+                        }
                     },
                     status = post.status,
                     authorId = post.authors.firstOrNull()?.id,
@@ -203,7 +209,7 @@ class PostRepositoryImpl(
                     } ?: currentPost?.authors ?: emptyList(),
                     tags = postDto.tags?.map { tagDto ->
                         com.ghostly.posts.models.Tag(
-                            id = tagDto.id ?: "temp_${System.currentTimeMillis()}",
+                            id = tagDto.id!!, // Server should always provide an ID
                             name = tagDto.name,
                             slug = tagDto.slug ?: tagDto.name.lowercase().replace(" ", "-")
                         )
