@@ -49,6 +49,7 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.cash.paging)
             implementation(libs.androidx.room.paging)
+            implementation(libs.kermit)
         }
         androidMain.dependencies {
             implementation(libs.androidx.datastore.preferences)

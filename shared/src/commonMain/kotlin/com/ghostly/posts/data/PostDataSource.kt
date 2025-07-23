@@ -51,10 +51,12 @@ class LocalPostDataSource(
         
         // Insert tags
         tagDao.insertTags(posts.flatMap {
-            it.tags.map { tag ->
-                TagEntity(
-                    tag.id, tag.name, tag.slug
-                )
+            it.tags.mapNotNull { tag ->
+                tag.id?.let { id ->
+                    TagEntity(
+                        id, tag.name, tag.slug
+                    )
+                }
             }
         })
         
@@ -69,10 +71,12 @@ class LocalPostDataSource(
         
         // Insert tag relationships
         postTagCrossRefDao.insertPostTagCrossRef(posts.flatMap { post ->
-            post.tags.map { tag ->
-                PostTagCrossRef(
-                    post.id, tag.id
-                )
+            post.tags.mapNotNull { tag ->
+                tag.id?.let { id ->
+                    PostTagCrossRef(
+                        post.id, id
+                    )
+                }
             }
         })
     }
@@ -90,19 +94,23 @@ class LocalPostDataSource(
         )
         
         // Update tags - first clear old relationships, then insert new ones
-        tagDao.insertTags(post.tags.map { tag ->
-            TagEntity(
-                tag.id, tag.name, tag.slug
-            )
+        tagDao.insertTags(post.tags.mapNotNull { tag ->
+            tag.id?.let { id ->
+                TagEntity(
+                    id, tag.name, tag.slug
+                )
+            }
         })
         
         // Clear old post-tag relationships and insert new ones
         postTagCrossRefDao.clearPostTagCrossRefs(post.id)
         postTagCrossRefDao.insertPostTagCrossRef(
-            post.tags.map { tag ->
-                PostTagCrossRef(
-                    post.id, tag.id
-                )
+            post.tags.mapNotNull { tag ->
+                tag.id?.let { id ->
+                    PostTagCrossRef(
+                        post.id, id
+                    )
+                }
             }
         )
         
@@ -133,10 +141,12 @@ class LocalPostDataSource(
         
         // Insert/update tags
         tagDao.insertTags(posts.flatMap {
-            it.tags.map { tag ->
-                TagEntity(
-                    tag.id, tag.name, tag.slug
-                )
+            it.tags.mapNotNull { tag ->
+                tag.id?.let { id ->
+                    TagEntity(
+                        id, tag.name, tag.slug
+                    )
+                }
             }
         })
         
@@ -153,10 +163,12 @@ class LocalPostDataSource(
         posts.forEach { post ->
             postTagCrossRefDao.clearPostTagCrossRefs(post.id)
             postTagCrossRefDao.insertPostTagCrossRef(
-                post.tags.map { tag ->
-                    PostTagCrossRef(
-                        post.id, tag.id
-                    )
+                post.tags.mapNotNull { tag ->
+                    tag.id?.let { id ->
+                        PostTagCrossRef(
+                            post.id, id
+                        )
+                    }
                 }
             )
         }

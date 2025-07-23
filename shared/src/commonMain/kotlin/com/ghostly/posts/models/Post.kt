@@ -38,7 +38,7 @@ data class Author(
 
 @Serializable
 data class Tag(
-    val id: String,
+    val id: String? = null,
     val name: String,
     val slug: String,
 )
