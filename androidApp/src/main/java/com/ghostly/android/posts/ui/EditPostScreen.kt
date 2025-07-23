@@ -48,14 +48,17 @@ import com.ghostly.android.posts.EditPostViewModel
 import com.ghostly.android.posts.EditPostUiState
 import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.Tag
+import io.ktor.client.plugins.logging.Logger
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditPostScreen(
     navController: NavController,
     post: Post,
-    viewModel: EditPostViewModel = koinViewModel()
+    viewModel: EditPostViewModel = koinViewModel(),
+    logger: Logger = koinInject()
 ) {
     val currentPost by viewModel.post.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
@@ -70,7 +73,7 @@ fun EditPostScreen(
     
     // Debug: Log state changes
     LaunchedEffect(currentPost) {
-        println("EditPostScreen: Post state updated - Title: ${currentPost?.title}, Tags: ${currentPost?.tags?.size}")
+        logger.log("DEBUG: EditPostScreen: Post state updated - Title: ${currentPost?.title}, Tags: ${currentPost?.tags?.size}")
     }
     
     // Handle UI state changes
@@ -80,7 +83,7 @@ fun EditPostScreen(
             navController.navigateUp()
         } else if (state is EditPostUiState.Error) {
             // TODO: Show error message (Snackbar or Toast)
-            println("Save error: ${state.message}")
+            logger.log("ERROR: Save error: ${state.message}")
         }
     }
     
@@ -138,7 +141,7 @@ fun EditPostScreen(
             OutlinedTextField(
                 value = currentPost?.title ?: "",
                 onValueChange = { 
-                    println("EditPostScreen: Title changed to: $it")
+                    logger.log("DEBUG: EditPostScreen: Title changed to: $it")
                     viewModel.updateTitle(it) 
                 },
                 label = { Text(stringResource(R.string.title)) },
@@ -156,12 +159,12 @@ fun EditPostScreen(
                 tagInput = tagInput,
                 onTagInputChange = { tagInput = it },
                 onAddTag = { 
-                    println("EditPostScreen: Adding tag: $it")
+                    logger.log("DEBUG: EditPostScreen: Adding tag: $it")
                     viewModel.addTag(it)
                     tagInput = ""
                 },
                 onRemoveTag = { 
-                    println("EditPostScreen: Removing tag: ${it.name}")
+                    logger.log("DEBUG: EditPostScreen: Removing tag: ${it.name}")
                     viewModel.removeTag(it) 
                 },
                 focusRequester = focusRequester
@@ -173,7 +176,7 @@ fun EditPostScreen(
             OutlinedTextField(
                 value = currentPost?.excerpt ?: "",
                 onValueChange = { 
-                    println("EditPostScreen: Excerpt changed to: $it")
+                    logger.log("DEBUG: EditPostScreen: Excerpt changed to: $it")
                     viewModel.updateExcerpt(it) 
                 },
                 label = { Text(stringResource(R.string.excerpt)) },

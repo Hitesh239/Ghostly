@@ -12,4 +12,4 @@ private val appModule = module {
     viewModelOf(::SettingsViewModel)
 }
 
-val allModules = listOf(appModule, loginModule, postsModule) + ghostCommonModules + androidModules
+val allModules = listOf(appModule, loginModule, postsModule, loggerModule) + ghostCommonModules + androidModules

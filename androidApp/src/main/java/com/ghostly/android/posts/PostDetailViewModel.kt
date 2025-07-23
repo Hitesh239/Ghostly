@@ -80,7 +80,7 @@ class PostDetailViewModel(
                         tags = updatedPost.tags.map { tag ->
                             val isTemporaryTag = tag.id.startsWith("temp_")
                             if (isTemporaryTag) {
-                                com.ghostly.posts.models.TagDto(id = null, name = tag.name, slug = null)
+                                com.ghostly.posts.models.TagDto(name = tag.name)
                             } else {
                                 com.ghostly.posts.models.TagDto(id = tag.id, name = tag.name, slug = tag.slug)
                             }

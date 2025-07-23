@@ -18,7 +18,7 @@ import org.koin.dsl.module
 @OptIn(ExperimentalPagingApi::class)
 private val ghostCommonModule = module {
     single<PostDataSource> { LocalPostDataSource(get(), get(), get(), get(), get()) }
-    single<PostRepository> { PostRepositoryImpl(get(), get(), get(), get()) }
+    single<PostRepository> { PostRepositoryImpl(get(), get(), get(), get(), get()) }
     single<EditPostUseCase> { EditPostUseCaseImpl(get()) }
     single<GetPostsUseCase> { GetPostsUseCaseImpl(get()) }
     single { PostRemoteMediator(get(), get(), get(), get()) }

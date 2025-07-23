@@ -27,6 +27,7 @@ import io.ktor.http.contentType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import io.ktor.client.plugins.logging.Logger
 
 interface ApiService {
     suspend fun getPosts(page: Int, pageSize: Int): Result<PostsResponse>
@@ -52,6 +53,7 @@ class ApiServiceImpl(
     private val client: HttpClient,
     private val tokenProvider: TokenProvider,
     private val loginDetailsStore: LoginDetailsStore,
+    private val logger: Logger
 ) : ApiService {
 
     private suspend fun getLoginDetails(): LoginDetails? {
@@ -60,6 +62,16 @@ class ApiServiceImpl(
 
     private suspend fun tryAndGetToken(): Token? {
         return tokenProvider.generateToken()
+    }
+
+    // Helper function to clean domain URL by removing /ghost if present
+    private fun cleanDomainUrl(domainUrl: String?): String {
+        if (domainUrl == null) return ""
+        return if (domainUrl.endsWith("/ghost")) {
+            domainUrl.removeSuffix("/ghost")
+        } else {
+            domainUrl
+        }
     }
 
     override suspend fun <T> get(
@@ -73,7 +85,7 @@ class ApiServiceImpl(
         val token =
             tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
 
-        val response: HttpResponse = client.get("${loginDetails.domainUrl}${endpoint.path}") {
+        val response: HttpResponse = client.get("${cleanDomainUrl(loginDetails.domainUrl)}${endpoint.path}") {
             block.invoke(this)
             header("Authorization", "Ghost ${token.token}")
         }
@@ -107,7 +119,7 @@ class ApiServiceImpl(
         val token =
             tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
 
-        val response: HttpResponse = client.post("${loginDetails.domainUrl}${endpoint.path}") {
+        val response: HttpResponse = client.post("${cleanDomainUrl(loginDetails.domainUrl)}${endpoint.path}") {
             block.invoke(this)
             header("Authorization", "Ghost ${token.token}")
         }
@@ -138,7 +150,7 @@ class ApiServiceImpl(
             tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
 
         val response: HttpResponse =
-            client.get("${loginDetails.domainUrl}/api/admin/posts/?formats=html") {
+            client.get("${cleanDomainUrl(loginDetails.domainUrl)}/api/admin/posts/?formats=html") {
                 parameter("page", page)
                 parameter("limit", pageSize)
                 header("Authorization", "Ghost ${token.token}")
@@ -186,7 +198,7 @@ class ApiServiceImpl(
             val token =
                 tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
             val response: HttpResponse =
-                client.put("${loginDetails.domainUrl}/api/admin/posts?formats=html") {
+                client.put("${cleanDomainUrl(loginDetails.domainUrl)}/api/admin/posts?formats=html") {
                     url {
                         appendPathSegments(postId)
                     }
@@ -224,14 +236,14 @@ class ApiServiceImpl(
             val token =
                 tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
             
-            println("ApiService: Sending PUT request to update post $postId")
-            println("ApiService: Request body: ${request.posts.firstOrNull()?.tags?.size} tags")
+            logger.log("INFO: ApiService: Sending PUT request to update post $postId")
+            logger.log("DEBUG: ApiService: Request body: ${request.posts.firstOrNull()?.tags?.size} tags")
             request.posts.firstOrNull()?.tags?.forEach { tag ->
-                println("ApiService: Tag in request: ${tag.name} (id: ${tag.id})")
+                logger.log("DEBUG: ApiService: Tag in request: ${tag.name} (id: ${tag.id})")
             }
             
             val response: HttpResponse =
-                client.put("${loginDetails.domainUrl}/api/admin/posts/${postId}/") {
+                client.put("${cleanDomainUrl(loginDetails.domainUrl)}/api/admin/posts/${postId}/") {
                     header("Authorization", "Ghost ${token.token}")
                     contentType(ContentType.Application.Json)
                     setBody(request)
@@ -246,12 +258,12 @@ class ApiServiceImpl(
                 }
 
                 response.status != HttpStatusCode.OK -> {
-                    println("ApiService: Update failed with status ${response.status.value}: ${response.bodyAsText()}")
+                    logger.log("ERROR: ApiService: Update failed with status ${response.status.value}: ${response.bodyAsText()}")
                     return@withContext Result.Error(response.status.value, response.bodyAsText())
                 }
 
                 else -> {
-                    println("ApiService: Update successful")
+                    logger.log("INFO: ApiService: Update successful")
                     Result.Success(response.body<UpdatePostResponse>())
                 }
             }
@@ -265,7 +277,7 @@ class ApiServiceImpl(
             val token =
                 tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
             val response: HttpResponse =
-                client.get("${loginDetails.domainUrl}/api/admin/posts/${postId}/") {
+                client.get("${cleanDomainUrl(loginDetails.domainUrl)}/api/admin/posts/${postId}/") {
                     header("Authorization", "Ghost ${token.token}")
                 }
 
@@ -286,9 +298,4 @@ class ApiServiceImpl(
                 }
             }
         }
-}
-
-fun logUnlimited(tag: String, string: String) {
-    val maxLogSize = 1000
-    string.chunked(maxLogSize).forEach { println("$tag: $it ") }
 }

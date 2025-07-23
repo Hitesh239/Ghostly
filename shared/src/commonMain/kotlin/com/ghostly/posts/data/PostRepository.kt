@@ -14,6 +14,7 @@ import com.ghostly.posts.models.PostsResponse
 import com.ghostly.posts.models.UpdatePostRequest
 import com.ghostly.posts.models.UpdateRequestWrapper
 import com.ghostly.posts.models.PostDto
+import io.ktor.client.plugins.logging.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
@@ -47,6 +48,7 @@ class PostRepositoryImpl(
     private val postDao: PostDao,
     private val postRemoteMediator: PostRemoteMediator,
     private val postDataSource: PostDataSource,
+    private val logger: Logger
 ) : PostRepository {
     override suspend fun getOnePost(): Result<PostsResponse> {
         return apiService.getPosts(1, 1)
@@ -71,7 +73,7 @@ class PostRepositoryImpl(
     }
 
     override suspend fun updatePost(post: Post): Result<Post> {
-        println("PostRepository: Updating post ${post.id} with ${post.tags.size} tags")
+        logger.log("INFO: PostRepository: Updating post ${post.id} with ${post.tags.size} tags")
         
         // Create the update request with the complete tag list
         val request = UpdatePostRequest(
@@ -85,11 +87,11 @@ class PostRepositoryImpl(
                         // Temporary tags created on the client will have an ID starting with 'temp_'
                         val isTemporaryTag = tag.id.startsWith("temp_")
                         
-                        println("PostRepository: Including tag: ${tag.name} (id: ${tag.id}, isTemporary: $isTemporaryTag)")
+                        logger.log("DEBUG: PostRepository: Including tag: ${tag.name} (id: ${tag.id}, isTemporary: $isTemporaryTag)")
                         
                         if (isTemporaryTag) {
                             // For new tags, only send the name as Ghost will generate the ID and slug
-                            com.ghostly.posts.models.TagDto(name = tag.name, slug = tag.slug)
+                            com.ghostly.posts.models.TagDto(name = tag.name)
                         } else {
                             // For existing tags, send the full tag details
                             com.ghostly.posts.models.TagDto(id = tag.id, name = tag.name, slug = tag.slug)
@@ -103,10 +105,10 @@ class PostRepositoryImpl(
             )
         )
 
-        println("PostRepository: Sending PUT request to update post")
+        logger.log("INFO: PostRepository: Sending PUT request to update post. Request: $request")
         return when (val result = apiService.updatePost(post.id, request)) {
             is Result.Success -> {
-                println("PostRepository: Server update successful")
+                logger.log("INFO: PostRepository: Server update successful")
                 val updatedPost = result.data?.posts?.firstOrNull()?.let { postDto ->
                     Post(
                         id = postDto.id,
@@ -135,18 +137,18 @@ class PostRepositoryImpl(
                                 name = tagDto.name,
                                 slug = tagDto.slug ?: tagDto.name.lowercase().replace(" ", "-")
                             )
-                        } ?: post.tags // Use original tags if not in response
+                        } ?: emptyList() // If no tags in response, assume empty
                     )
                 } ?: return Result.Error(-1, "No post data received")
 
-                println("PostRepository: Updated post has ${updatedPost.tags.size} tags")
+                logger.log("INFO: PostRepository: Updated post has ${updatedPost.tags.size} tags")
                 // Update local database with the server response
                 postDataSource.updatePost(updatedPost)
                 Result.Success(updatedPost)
             }
 
             is Result.Error -> {
-                println("PostRepository: Server update failed: ${result.message}")
+                logger.log("ERROR: PostRepository: Server update failed: ${result.message}")
                 Result.Error(result.errorCode, result.message)
             }
         }
