@@ -1,6 +1,7 @@
 package com.ghostly.android.posts
 
 import com.ghostly.posts.models.Author
+import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.Tag
 import kotlin.reflect.typeOf
 
@@ -15,5 +16,6 @@ object NavigationMaps {
         typeOf<List<Tag>>() to serializableType<List<Tag>>(),
         typeOf<Author>() to serializableType<Author>(),
         typeOf<Tag>() to serializableType<Tag>(),
+        typeOf<Post>() to serializableType<Post>(),
     )
 }

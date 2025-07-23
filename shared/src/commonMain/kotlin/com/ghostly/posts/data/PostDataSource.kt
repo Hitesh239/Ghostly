@@ -13,8 +13,9 @@ import com.ghostly.mappers.toPostEntity
 import com.ghostly.posts.models.Post
 
 interface PostDataSource {
-    suspend fun insertPosts(posts: List<Post>)
+    suspend fun insertPosts(posts: List<Post>, clearFirst: Boolean)
     suspend fun updatePost(post: Post)
+    suspend fun refreshPosts(posts: List<Post>)
 }
 
 class LocalPostDataSource(
@@ -24,10 +25,22 @@ class LocalPostDataSource(
     private val postAuthorCrossRefDao: PostAuthorCrossRefDao,
     private val postTagCrossRefDao: PostTagCrossRefDao,
 ) : PostDataSource {
-    override suspend fun insertPosts(posts: List<Post>) {
+    override suspend fun insertPosts(posts: List<Post>, clearFirst: Boolean) {
+        if (clearFirst) {
+            // Clear all existing data first to ensure clean state
+            postDao.clearAll()
+            authorDao.clearAll()
+            tagDao.clearAll()
+            postAuthorCrossRefDao.clearAll()
+            postTagCrossRefDao.clearAll()
+        }
+        
+        // Insert posts
         posts.map { it.toPostEntity() }.let {
             postDao.insertPosts(it)
         }
+        
+        // Insert authors
         authorDao.insertAuthors(posts.flatMap {
             it.authors.map { author ->
                 AuthorEntity(
@@ -35,13 +48,19 @@ class LocalPostDataSource(
                 )
             }
         })
+        
+        // Insert tags
         tagDao.insertTags(posts.flatMap {
-            it.tags.map { tag ->
-                TagEntity(
-                    tag.id, tag.name, tag.slug
-                )
+            it.tags.mapNotNull { tag ->
+                tag.id?.let { id ->
+                    TagEntity(
+                        id, tag.name, tag.slug
+                    )
+                }
             }
         })
+        
+        // Insert author relationships
         postAuthorCrossRefDao.insertPostAuthorCrossRef(posts.flatMap { post ->
             post.authors.map { author ->
                 PostAuthorCrossRef(
@@ -49,17 +68,23 @@ class LocalPostDataSource(
                 )
             }
         })
+        
+        // Insert tag relationships
         postTagCrossRefDao.insertPostTagCrossRef(posts.flatMap { post ->
-            post.tags.map { tag ->
-                PostTagCrossRef(
-                    post.id, tag.id
-                )
+            post.tags.mapNotNull { tag ->
+                tag.id?.let { id ->
+                    PostTagCrossRef(
+                        post.id, id
+                    )
+                }
             }
         })
     }
 
     override suspend fun updatePost(post: Post) {
         postDao.updatePost(post.toPostEntity())
+        
+        // Update authors
         authorDao.insertAuthors(
             post.authors.map { author ->
                 AuthorEntity(
@@ -67,11 +92,29 @@ class LocalPostDataSource(
                 )
             }
         )
-        tagDao.insertTags(post.tags.map { tag ->
-            TagEntity(
-                tag.id, tag.name, tag.slug
-            )
+        
+        // Update tags - first clear old relationships, then insert new ones
+        tagDao.insertTags(post.tags.mapNotNull { tag ->
+            tag.id?.let { id ->
+                TagEntity(
+                    id, tag.name, tag.slug
+                )
+            }
         })
+        
+        // Clear old post-tag relationships and insert new ones
+        postTagCrossRefDao.clearPostTagCrossRefs(post.id)
+        postTagCrossRefDao.insertPostTagCrossRef(
+            post.tags.mapNotNull { tag ->
+                tag.id?.let { id ->
+                    PostTagCrossRef(
+                        post.id, id
+                    )
+                }
+            }
+        )
+        
+        // Update author relationships
         postAuthorCrossRefDao.insertPostAuthorCrossRef(
             post.authors.map { author ->
                 PostAuthorCrossRef(
@@ -79,12 +122,55 @@ class LocalPostDataSource(
                 )
             }
         )
-        postTagCrossRefDao.insertPostTagCrossRef(
-            post.tags.map { tag ->
-                PostTagCrossRef(
-                    post.id, tag.id
+    }
+    
+    override suspend fun refreshPosts(posts: List<Post>) {
+        // Insert/update posts without clearing everything
+        posts.map { it.toPostEntity() }.let {
+            postDao.insertPosts(it)
+        }
+        
+        // Insert/update authors
+        authorDao.insertAuthors(posts.flatMap {
+            it.authors.map { author ->
+                AuthorEntity(
+                    author.id, author.name, author.slug, author.profileImage
                 )
             }
-        )
+        })
+        
+        // Insert/update tags
+        tagDao.insertTags(posts.flatMap {
+            it.tags.mapNotNull { tag ->
+                tag.id?.let { id ->
+                    TagEntity(
+                        id, tag.name, tag.slug
+                    )
+                }
+            }
+        })
+        
+        // Update author relationships
+        postAuthorCrossRefDao.insertPostAuthorCrossRef(posts.flatMap { post ->
+            post.authors.map { author ->
+                PostAuthorCrossRef(
+                    post.id, author.id
+                )
+            }
+        })
+        
+        // Update tag relationships
+        posts.forEach { post ->
+            postTagCrossRefDao.clearPostTagCrossRefs(post.id)
+            postTagCrossRefDao.insertPostTagCrossRef(
+                post.tags.mapNotNull { tag ->
+                    tag.id?.let { id ->
+                        PostTagCrossRef(
+                            post.id, id
+                        )
+                    }
+                }
+            )
+        }
     }
 }

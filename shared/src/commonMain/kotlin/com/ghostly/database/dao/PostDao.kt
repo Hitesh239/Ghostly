@@ -26,12 +26,18 @@ interface PostDao {
     @Update
     suspend fun updatePost(post: PostEntity)
 
+    @Query("SELECT * FROM posts WHERE id IN (:postIds)")
+    suspend fun getPostsByIds(postIds: List<String>): List<PostWithAuthorsAndTags>
+
+    @Update
+    suspend fun updatePosts(posts: List<PostEntity>)
+
     @Query("Delete From posts")
     suspend fun clearAll()
 
     @Transaction
     @Query("SELECT * FROM posts WHERE id = :postId")
-    fun getPostWithAuthorsAndTags(postId: String): Flow<PostWithAuthorsAndTags>
+    fun getPostWithAuthorsAndTags(postId: String): Flow<PostWithAuthorsAndTags?>
 
     @Transaction
     @Query("SELECT * FROM posts")
@@ -45,6 +51,9 @@ interface AuthorDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAuthors(authors: List<AuthorEntity>)
+    
+    @Query("DELETE FROM authors")
+    suspend fun clearAll()
 }
 
 @Dao
@@ -54,6 +63,9 @@ interface TagDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTags(tags: List<TagEntity>)
+    
+    @Query("DELETE FROM tags")
+    suspend fun clearAll()
 }
 
 @Dao
@@ -63,6 +75,9 @@ interface PostAuthorCrossRefDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPostAuthorCrossRef(crossRefs: List<PostAuthorCrossRef>)
+    
+    @Query("DELETE FROM post_author_cross_ref")
+    suspend fun clearAll()
 }
 
 @Dao
@@ -72,4 +87,10 @@ interface PostTagCrossRefDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPostTagCrossRef(crossRefs: List<PostTagCrossRef>)
+    
+    @Query("DELETE FROM post_tag_cross_ref WHERE postId = :postId")
+    suspend fun clearPostTagCrossRefs(postId: String)
+    
+    @Query("DELETE FROM post_tag_cross_ref")
+    suspend fun clearAll()
 }

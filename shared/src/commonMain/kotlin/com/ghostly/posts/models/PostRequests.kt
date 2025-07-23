@@ -12,5 +12,5 @@ data class UpdateRequest(
 
 @Serializable
 data class UpdateRequestWrapper(
-    val posts: List<UpdateRequest>
+    val posts: List<UpdatePostBody>
 )
