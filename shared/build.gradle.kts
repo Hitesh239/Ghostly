@@ -22,7 +22,7 @@ kotlin {
      iosArm64()
      iosSimulatorArm64()
 
-     /* cocoapods {
+      cocoapods {
          summary = "Some description for the Shared Module"
          homepage = "Link to the Shared Module homepage"
          version = "1.0"
@@ -32,7 +32,7 @@ kotlin {
              baseName = "shared"
              isStatic = true
          }
-     }*/
+     }
 
     sourceSets {
         commonMain.dependencies {
