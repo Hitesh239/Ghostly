@@ -40,6 +40,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import android.util.Log
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowRow
@@ -70,7 +71,7 @@ fun EditPostScreen(
     
     // Debug: Log state changes
     LaunchedEffect(currentPost) {
-        println("EditPostScreen: Post state updated - Title: ${currentPost?.title}, Tags: ${currentPost?.tags?.size}")
+        Log.d("EditPostViewModel","EditPostScreen: Post state updated - Title: ${currentPost?.title}, Tags: ${currentPost?.tags?.size}")
     }
     
     // Handle UI state changes
@@ -79,8 +80,7 @@ fun EditPostScreen(
         if (state is EditPostUiState.Success) {
             navController.navigateUp()
         } else if (state is EditPostUiState.Error) {
-            // TODO: Show error message (Snackbar or Toast)
-            println("Save error: ${state.message}")
+
         }
     }
     
@@ -137,8 +137,7 @@ fun EditPostScreen(
             // Title field
             OutlinedTextField(
                 value = currentPost?.title ?: "",
-                onValueChange = { 
-                    println("EditPostScreen: Title changed to: $it")
+                onValueChange = {
                     viewModel.updateTitle(it) 
                 },
                 label = { Text(stringResource(R.string.title)) },
@@ -155,13 +154,11 @@ fun EditPostScreen(
                 tags = currentPost?.tags ?: emptyList(),
                 tagInput = tagInput,
                 onTagInputChange = { tagInput = it },
-                onAddTag = { 
-                    println("EditPostScreen: Adding tag: $it")
+                onAddTag = {
                     viewModel.addTag(it)
                     tagInput = ""
                 },
-                onRemoveTag = { 
-                    println("EditPostScreen: Removing tag: ${it.name}")
+                onRemoveTag = {
                     viewModel.removeTag(it) 
                 },
                 focusRequester = focusRequester
@@ -172,8 +169,7 @@ fun EditPostScreen(
             // Excerpt field
             OutlinedTextField(
                 value = currentPost?.excerpt ?: "",
-                onValueChange = { 
-                    println("EditPostScreen: Excerpt changed to: $it")
+                onValueChange = {
                     viewModel.updateExcerpt(it) 
                 },
                 label = { Text(stringResource(R.string.excerpt)) },
