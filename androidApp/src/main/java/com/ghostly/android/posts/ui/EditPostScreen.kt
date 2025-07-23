@@ -49,17 +49,14 @@ import com.ghostly.android.posts.EditPostViewModel
 import com.ghostly.android.posts.EditPostUiState
 import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.Tag
-import io.ktor.client.plugins.logging.Logger
 import org.koin.androidx.compose.koinViewModel
-import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditPostScreen(
     navController: NavController,
     post: Post,
-    viewModel: EditPostViewModel = koinViewModel(),
-    logger: Logger = koinInject()
+    viewModel: EditPostViewModel = koinViewModel()
 ) {
     val currentPost by viewModel.post.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
