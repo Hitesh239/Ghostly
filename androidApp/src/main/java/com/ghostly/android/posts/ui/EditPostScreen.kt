@@ -63,17 +63,20 @@ fun EditPostScreen(
     var tagInput by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
-    
+
     // Initialize the ViewModel with the post data
     LaunchedEffect(post) {
         viewModel.initializePost(post)
     }
-    
+
     // Debug: Log state changes
     LaunchedEffect(currentPost) {
-        Log.d("EditPostViewModel","EditPostScreen: Post state updated - Title: ${currentPost?.title}, Tags: ${currentPost?.tags?.size}")
+        Log.d(
+            "EditPostViewModel",
+            "EditPostScreen: Post state updated - Title: ${currentPost?.title}, Tags: ${currentPost?.tags?.size}"
+        )
     }
-    
+
     // Handle UI state changes
     LaunchedEffect(uiState) {
         val state = uiState
@@ -83,7 +86,7 @@ fun EditPostScreen(
 
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -138,7 +141,7 @@ fun EditPostScreen(
             OutlinedTextField(
                 value = currentPost?.title ?: "",
                 onValueChange = {
-                    viewModel.updateTitle(it) 
+                    viewModel.updateTitle(it)
                 },
                 label = { Text(stringResource(R.string.title)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -146,9 +149,9 @@ fun EditPostScreen(
                 singleLine = false,
                 textStyle = MaterialTheme.typography.titleLarge
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Tags section
             TagsSection(
                 tags = currentPost?.tags ?: emptyList(),
@@ -159,27 +162,12 @@ fun EditPostScreen(
                     tagInput = ""
                 },
                 onRemoveTag = {
-                    viewModel.removeTag(it) 
+                    viewModel.removeTag(it)
                 },
                 focusRequester = focusRequester
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
-            // Excerpt field
-            OutlinedTextField(
-                value = currentPost?.excerpt ?: "",
-                onValueChange = {
-                    viewModel.updateExcerpt(it) 
-                },
-                label = { Text(stringResource(R.string.excerpt)) },
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = Int.MAX_VALUE,
-                singleLine = false
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
 
         }
     }
@@ -200,7 +188,7 @@ fun TagsSection(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
-        
+
         // Tags display
         if (tags.isNotEmpty()) {
             FlowRow(
@@ -225,7 +213,7 @@ fun TagsSection(
                 }
             }
         }
-        
+
         // Tag input
         OutlinedTextField(
             value = tagInput,
