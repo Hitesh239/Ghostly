@@ -309,44 +309,53 @@ class ApiServiceImpl(
         val token =
             tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
 
-        val response: HttpResponse =
-            client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v6")
-                setBody(
-                    MultiPartFormDataContent(
-                        formData {
-                            append(
-                                key = "filepond",
-                                value = bytes,
-                                headers = Headers.build {
-                                    append(HttpHeaders.ContentType, mimeType)
-                                    append(
-                                        HttpHeaders.ContentDisposition,
-                                        "form-data; name=\"filepond\"; filename=\"$fileName\""
-                                    )
-                                }
-                            )
-                        }
+        println("ApiService: Uploading image - size: ${bytes.size}, type: $mimeType, name: $fileName")
+        println("ApiService: Using URL: ${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}")
+        
+        // Try approach 1: Simplified multipart with auto Content-Type
+        try {
+            val response: HttpResponse =
+                client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                    header("Authorization", "Ghost ${token.token}")
+                    header("Accept-Version", "v5")
+                    setBody(
+                        MultiPartFormDataContent(
+                            formData {
+                                // Let Ktor auto-detect Content-Type
+                                append("file", bytes, Headers.build {
+                                    append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
+                                })
+                            }
+                        )
                     )
-                )
-            }
+                }
+            
+            println("ApiService: Response status: ${response.status}")
+            println("ApiService: Response headers: ${response.headers}")
+            
+            when {
+                response.status == HttpStatusCode.Unauthorized -> {
+                    return@withContext Result.Error(
+                        HttpStatusCode.Unauthorized.value,
+                        "Invalid API Key"
+                    )
+                }
 
-        when {
-            response.status == HttpStatusCode.Unauthorized -> {
-                return@withContext Result.Error(
-                    HttpStatusCode.Unauthorized.value,
-                    "Invalid API Key"
-                )
-            }
+                response.status != HttpStatusCode.OK -> {
+                    val errorBody = response.bodyAsText()
+                    println("ApiService: Error response body: $errorBody")
+                    return@withContext Result.Error(response.status.value, errorBody)
+                }
 
-            response.status != HttpStatusCode.OK -> {
-                return@withContext Result.Error(response.status.value, response.bodyAsText())
+                else -> {
+                    val result = response.body<ImageUploadResponse>()
+                    println("ApiService: Upload successful, image URL: ${result.images.firstOrNull()?.url}")
+                    Result.Success(result)
+                }
             }
-
-            else -> {
-                Result.Success(response.body<ImageUploadResponse>())
-            }
+        } catch (e: Exception) {
+            println("ApiService: Upload exception: ${e.message}")
+            return@withContext Result.Error(-1, "Upload failed: ${e.message}")
         }
     }
 }
