@@ -414,27 +414,30 @@ class ApiServiceImpl(
         }
         
         suspend fun tryApproach6(): HttpResponse {
-            println("ApiService: Trying approach 6 - Manual multipart with string body")
+            println("ApiService: Trying approach 6 - Manual multipart with BINARY data (not base64)")
             val boundary = "----formdata-ktor-${System.currentTimeMillis()}"
-            val imageDataBase64 = Base64.encode(bytes)
             
-            val multipartBody = buildString {
+            // Create multipart with BINARY data (not base64!)
+            val boundaryBytes = boundary.toByteArray()
+            val headerBytes = buildString {
                 append("--$boundary\r\n")
                 append("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n")
                 append("Content-Type: $mimeType\r\n")
                 append("\r\n")
-                append(imageDataBase64)
-                append("\r\n")
-                append("--$boundary--\r\n")
-            }
+            }.toByteArray()
+            val footerBytes = "\r\n--$boundary--\r\n".toByteArray()
             
-            println("ApiService: Manual multipart body preview: ${multipartBody.take(200)}...")
+            // Combine: header + binary image data + footer
+            val multipartBytes = headerBytes + bytes + footerBytes
+            
+            println("ApiService: Manual multipart with binary data - total size: ${multipartBytes.size}")
+            println("ApiService: Header: ${String(headerBytes)}")
             
             return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
                 header("Authorization", "Ghost ${token.token}")
                 header("Accept-Version", "v6")
                 header("Content-Type", "multipart/form-data; boundary=$boundary")
-                setBody(multipartBody)
+                setBody(multipartBytes)
             }
         }
         
@@ -470,7 +473,27 @@ class ApiServiceImpl(
             }
         }
         
-        val approaches = listOf(::tryApproach1, ::tryApproach2, ::tryApproach3, ::tryApproach4, ::tryApproach5, ::tryApproach6, ::tryApproach7)
+        suspend fun tryApproach8(): HttpResponse {
+            println("ApiService: Trying approach 8 - Ktor multipart with binary enforcement")
+            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                header("Authorization", "Ghost ${token.token}")
+                header("Accept-Version", "v6")
+                // Force Ktor to send binary data correctly
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            // Use the simplest possible multipart format
+                            append("file", bytes, Headers.build {
+                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
+                                // Don't specify Content-Type - let it be auto-detected as binary
+                            })
+                        }
+                    )
+                )
+            }
+        }
+        
+        val approaches = listOf(::tryApproach6, ::tryApproach8, ::tryApproach1, ::tryApproach2, ::tryApproach3, ::tryApproach4, ::tryApproach5, ::tryApproach7)
         
         // Try each approach
         for ((index, approach) in approaches.withIndex()) {
