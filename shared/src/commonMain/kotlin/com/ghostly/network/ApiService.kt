@@ -28,6 +28,7 @@ import io.ktor.http.contentType
 import io.ktor.http.headers
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.InputProvider
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
@@ -315,8 +316,11 @@ class ApiServiceImpl(
                         formData {
                             append(
                                 key = "file",
-                                value = bytes,
+                                value = InputProvider {
+                                    io.ktor.utils.io.core.buildPacket { writeFully(bytes) }
+                                },
                                 headers = Headers.build {
+                                    append(HttpHeaders.ContentType, mimeType)
                                     append(
                                         HttpHeaders.ContentDisposition,
                                         "form-data; name=\"file\"; filename=\"$fileName\""

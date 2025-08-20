@@ -138,6 +138,7 @@ fun EditPostScreen(
                                         val bytes = withContext(Dispatchers.IO) {
                                             resolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
                                         }
+                                        Log.d("EditPost", "Picked image byte size: ${bytes.size}")
                                         if (bytes.isNotEmpty()) {
                                             viewModel.uploadImageAndSetFeature(bytes, name, type)
                                         }
