@@ -317,13 +317,13 @@ class ApiServiceImpl(
                     MultiPartFormDataContent(
                         formData {
                             append(
-                                key = "file",
+                                key = "filepond",
                                 value = bytes,
                                 headers = Headers.build {
                                     append(HttpHeaders.ContentType, mimeType)
                                     append(
                                         HttpHeaders.ContentDisposition,
-                                        "form-data; name=\"file\"; filename=\"$fileName\""
+                                        "form-data; name=\"filepond\"; filename=\"$fileName\""
                                     )
                                 }
                             )

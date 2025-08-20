@@ -139,6 +139,8 @@ fun EditPostScreen(
                                             resolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
                                         }
                                         Log.d("EditPost", "Picked image byte size: ${bytes.size}")
+                                        Log.d("EditPost", "Picked image mime type: $type")
+                                        Log.d("EditPost", "Picked image filename: $name")
                                         if (bytes.isNotEmpty()) {
                                             viewModel.uploadImageAndSetFeature(bytes, name, type)
                                         }

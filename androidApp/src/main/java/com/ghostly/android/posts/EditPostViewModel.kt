@@ -158,6 +158,7 @@ class EditPostViewModel(
     fun uploadImageAndSetFeature(bytes: ByteArray, fileName: String, mimeType: String) {
         viewModelScope.launch {
             _isUploading.value = true
+            _uiState.value = EditPostUiState.Idle // Clear any previous error
             try {
                 val result = try {
                     postRepository.uploadImage(fileName, bytes, mimeType)
