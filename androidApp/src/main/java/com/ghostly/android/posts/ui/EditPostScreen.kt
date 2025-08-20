@@ -69,6 +69,7 @@ fun EditPostScreen(
 ) {
     val currentPost by viewModel.post.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val isUploading by viewModel.isUploading.collectAsState()
     var tagInput by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
@@ -118,7 +119,6 @@ fun EditPostScreen(
                 actions = {
                     val context = LocalContext.current
                     val activity = context as? Activity
-                    var isUploading by remember { mutableStateOf(false) }
                     val pickImage = rememberLauncherForActivityResult(
                         contract = ActivityResultContracts.GetContent(),
                         onResult = { uri: Uri? ->
@@ -127,17 +127,12 @@ fun EditPostScreen(
                                 val name = uri.lastPathSegment?.substringAfterLast('/') ?: "image.jpg"
                                 val type = resolver.getType(uri) ?: "image/jpeg"
                                 scope.launch {
-                                    isUploading = true
-                                    try {
                                         val bytes = withContext(Dispatchers.IO) {
                                             resolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
                                         }
                                         if (bytes.isNotEmpty()) {
                                             viewModel.uploadImageAndSetFeature(bytes, name, type)
                                         }
-                                    } finally {
-                                        isUploading = false
-                                    }
                                 }
                             }
                         }
@@ -159,7 +154,7 @@ fun EditPostScreen(
                         onClick = {
                             viewModel.savePost()
                         },
-                        enabled = uiState != EditPostUiState.Saving
+                        enabled = uiState != EditPostUiState.Saving && !isUploading
                     ) {
                         if (uiState == EditPostUiState.Saving) {
                             androidx.compose.material3.CircularProgressIndicator(
