@@ -511,7 +511,7 @@ class ApiServiceImpl(
                         )
                     }
 
-                    response.status == HttpStatusCode.OK -> {
+                    response.status == HttpStatusCode.OK || response.status == HttpStatusCode.Created -> {
                         val result = response.body<ImageUploadResponse>()
                         println("ApiService: Approach ${index + 1} SUCCESS! Image URL: ${result.images.firstOrNull()?.url}")
                         return@withContext Result.Success(result)
