@@ -318,9 +318,7 @@ class ApiServiceImpl(
                         formData {
                             append(
                                 key = "file",
-                                value = InputProvider {
-                                    io.ktor.utils.io.core.buildPacket { writeFully(bytes) }
-                                },
+                                value = bytes,
                                 headers = Headers.build {
                                     append(HttpHeaders.ContentType, mimeType)
                                     append(
@@ -328,14 +326,6 @@ class ApiServiceImpl(
                                         "form-data; name=\"file\"; filename=\"$fileName\""
                                     )
                                 }
-                            )
-                            append(
-                                key = "purpose",
-                                value = "image"
-                            )
-                            append(
-                                key = "ref",
-                                value = fileName
                             )
                         }
                     )
