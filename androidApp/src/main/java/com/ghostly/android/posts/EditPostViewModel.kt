@@ -159,7 +159,13 @@ class EditPostViewModel(
         viewModelScope.launch {
             _isUploading.value = true
             try {
-                val result = postRepository.uploadImage(fileName, bytes, mimeType)
+                val result = try {
+                    postRepository.uploadImage(fileName, bytes, mimeType)
+                } catch (e: Exception) {
+                    _uiState.value = EditPostUiState.Error(e.message ?: "Upload failed")
+                    _isUploading.value = false
+                    return@launch
+                }
                 if (result is com.ghostly.network.models.Result.Success) {
                     val url = result.data ?: return@launch
                     setFeatureImageUrl(url)
