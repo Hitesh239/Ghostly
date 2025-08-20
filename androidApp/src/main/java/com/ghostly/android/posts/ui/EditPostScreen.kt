@@ -124,7 +124,15 @@ fun EditPostScreen(
                         onResult = { uri: Uri? ->
                             if (uri != null) {
                                 val resolver = context.contentResolver
-                                val name = uri.lastPathSegment?.substringAfterLast('/') ?: "image.jpg"
+                                val name = try {
+                                    val cursor = resolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                                    cursor?.use {
+                                        val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                                        if (nameIndex != -1 && it.moveToFirst()) it.getString(nameIndex) else null
+                                    } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "image.jpg"
+                                } catch (e: Exception) {
+                                    uri.lastPathSegment?.substringAfterLast('/') ?: "image.jpg"
+                                }
                                 val type = resolver.getType(uri) ?: "image/jpeg"
                                 scope.launch {
                                         val bytes = withContext(Dispatchers.IO) {
