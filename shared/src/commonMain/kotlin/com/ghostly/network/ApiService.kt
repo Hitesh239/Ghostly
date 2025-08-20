@@ -314,14 +314,6 @@ class ApiServiceImpl(
                     MultiPartFormDataContent(
                         formData {
                             append(
-                                key = "purpose",
-                                value = "image"
-                            )
-                            append(
-                                key = "ref",
-                                value = fileName
-                            )
-                            append(
                                 key = "file",
                                 value = bytes,
                                 headers = Headers.build {
@@ -331,6 +323,14 @@ class ApiServiceImpl(
                                         "form-data; name=\"file\"; filename=\"$fileName\""
                                     )
                                 }
+                            )
+                            append(
+                                key = "purpose",
+                                value = "image"
+                            )
+                            append(
+                                key = "ref",
+                                value = fileName
                             )
                         }
                     )
