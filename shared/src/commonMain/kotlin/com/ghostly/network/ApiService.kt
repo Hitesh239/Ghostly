@@ -4,6 +4,7 @@ import com.ghostly.datastore.LoginDetailsStore
 import com.ghostly.login.models.LoginDetails
 import com.ghostly.login.models.SiteResponse
 import com.ghostly.network.models.Result
+import com.ghostly.network.models.ImageUploadResponse
 import com.ghostly.network.models.Token
 import com.ghostly.posts.models.PostsResponse
 import com.ghostly.posts.models.UpdatePostRequest
@@ -24,6 +25,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.appendPathSegments
 import io.ktor.http.contentType
+import io.ktor.http.headers
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -34,6 +41,7 @@ interface ApiService {
     suspend fun publishPost(postId: String, request: UpdateRequestWrapper): Result<PostsResponse>
     suspend fun updatePost(postId: String, request: UpdatePostRequest): Result<UpdatePostResponse>
     suspend fun getPostById(postId: String): Result<UpdatePostResponse>
+    suspend fun uploadImage(fileName: String, bytes: ByteArray, mimeType: String): Result<ImageUploadResponse>
 
     suspend fun <T> get(
         endpoint: Endpoint,
@@ -286,6 +294,58 @@ class ApiServiceImpl(
                 }
             }
         }
+
+    override suspend fun uploadImage(
+        fileName: String,
+        bytes: ByteArray,
+        mimeType: String,
+    ): Result<ImageUploadResponse> = withContext(Dispatchers.IO) {
+        val loginDetails =
+            getLoginDetails() ?: return@withContext Result.Error(-1, "Invalid Login Details")
+
+        val token =
+            tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
+
+        val response: HttpResponse =
+            client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                header("Authorization", "Ghost ${token.token}")
+                header("Accept-Version", "v3.0")
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append(
+                                key = "file",
+                                value = bytes,
+                                headers = Headers.build {
+                                    append(HttpHeaders.ContentType, mimeType)
+                                    append(
+                                        HttpHeaders.ContentDisposition,
+                                        "form-data; name=\"file\"; filename=\"$fileName\""
+                                    )
+                                }
+                            )
+                        }
+                    )
+                )
+            }
+
+        when {
+            response.status == HttpStatusCode.Unauthorized -> {
+                return@withContext Result.Error(
+                    HttpStatusCode.Unauthorized.value,
+                    "Invalid API Key"
+                )
+            }
+
+            response.status != HttpStatusCode.OK -> {
+                return@withContext Result.Error(response.status.value, response.bodyAsText())
+            }
+
+            else -> {
+                Result.Success(response.body<ImageUploadResponse>())
+            }
+        }
+    }
 }
 
 fun logUnlimited(tag: String, string: String) {
