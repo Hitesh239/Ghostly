@@ -37,6 +37,8 @@ import io.ktor.http.contentType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 interface ApiService {
     suspend fun getPosts(page: Int, pageSize: Int): Result<PostsResponse>
@@ -298,6 +300,7 @@ class ApiServiceImpl(
             }
         }
 
+    @OptIn(ExperimentalEncodingApi::class)
     override suspend fun uploadImage(
         fileName: String,
         bytes: ByteArray,
@@ -390,22 +393,84 @@ class ApiServiceImpl(
         }
         
         suspend fun tryApproach5(): HttpResponse {
-            println("ApiService: Trying approach 5 - Simple v6 with minimal headers")
+            println("ApiService: Trying approach 5 - Base64 approach (debug)")
+            // Try base64 encoded approach if file size is the issue
+            val base64Image = Base64.encode(bytes)
+            println("ApiService: Base64 size: ${base64Image.length}")
             return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
                 header("Authorization", "Ghost ${token.token}")
                 header("Accept-Version", "v6")
                 setBody(
                     MultiPartFormDataContent(
                         formData {
-                            // Minimal approach - let Ktor handle everything
-                            append("file", bytes)
+                            append("file", base64Image.toByteArray(), Headers.build {
+                                append(HttpHeaders.ContentType, "application/octet-stream")
+                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
+                            })
                         }
                     )
                 )
             }
         }
         
-        val approaches = listOf(::tryApproach1, ::tryApproach2, ::tryApproach3, ::tryApproach4, ::tryApproach5)
+        suspend fun tryApproach6(): HttpResponse {
+            println("ApiService: Trying approach 6 - Manual multipart with string body")
+            val boundary = "----formdata-ktor-${System.currentTimeMillis()}"
+            val imageDataBase64 = Base64.encode(bytes)
+            
+            val multipartBody = buildString {
+                append("--$boundary\r\n")
+                append("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n")
+                append("Content-Type: $mimeType\r\n")
+                append("\r\n")
+                append(imageDataBase64)
+                append("\r\n")
+                append("--$boundary--\r\n")
+            }
+            
+            println("ApiService: Manual multipart body preview: ${multipartBody.take(200)}...")
+            
+            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                header("Authorization", "Ghost ${token.token}")
+                header("Accept-Version", "v6")
+                header("Content-Type", "multipart/form-data; boundary=$boundary")
+                setBody(multipartBody)
+            }
+        }
+        
+        suspend fun tryApproach7(): HttpResponse {
+            println("ApiService: Trying approach 7 - Small test image to check size limits")
+            // Create a tiny 1x1 PNG image for testing
+            val tinyPngBytes = byteArrayOf(
+                0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+                0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+                0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+                0x08, 0x02, 0x00, 0x00, 0x00, 0x90.toByte(), 0x77.toByte(), 0x53.toByte(),
+                0xDE.toByte(), 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54,
+                0x08, 0xD7.toByte(), 0x63, 0xF8.toByte(), 0x0F, 0x00, 0x00, 0x01,
+                0x00, 0x01, 0x5C.toByte(), 0xCC.toByte(), 0x5D.toByte(), 0xB0.toByte(), 0x00, 0x00,
+                0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE.toByte(), 0x42.toByte(), 0x60.toByte(), 0x82.toByte()
+            )
+            
+            println("ApiService: Testing with tiny PNG (${tinyPngBytes.size} bytes)")
+            
+            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                header("Authorization", "Ghost ${token.token}")
+                header("Accept-Version", "v6")
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append("file", tinyPngBytes, Headers.build {
+                                append(HttpHeaders.ContentType, "image/png")
+                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"test.png\"")
+                            })
+                        }
+                    )
+                )
+            }
+        }
+        
+        val approaches = listOf(::tryApproach1, ::tryApproach2, ::tryApproach3, ::tryApproach4, ::tryApproach5, ::tryApproach6, ::tryApproach7)
         
         // Try each approach
         for ((index, approach) in approaches.withIndex()) {
