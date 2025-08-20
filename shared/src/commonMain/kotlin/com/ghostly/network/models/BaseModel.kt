@@ -16,3 +16,13 @@ data class Pagination(
     val next: Int? = null,
     val prev: Int? = null,
 )
+
+@Serializable
+data class ImageUploadResponse(
+    val images: List<UploadedImage>
+)
+
+@Serializable
+data class UploadedImage(
+    val url: String,
+)
