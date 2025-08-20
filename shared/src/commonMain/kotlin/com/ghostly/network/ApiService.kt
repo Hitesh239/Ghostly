@@ -309,10 +309,18 @@ class ApiServiceImpl(
         val response: HttpResponse =
             client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
                 header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v3.0")
+                header("Accept-Version", "v5")
                 setBody(
                     MultiPartFormDataContent(
                         formData {
+                            append(
+                                key = "purpose",
+                                value = "image"
+                            )
+                            append(
+                                key = "ref",
+                                value = fileName
+                            )
                             append(
                                 key = "file",
                                 value = bytes,
