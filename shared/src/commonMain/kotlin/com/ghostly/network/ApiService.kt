@@ -29,6 +29,8 @@ import io.ktor.http.headers
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.InputProvider
+import io.ktor.utils.io.core.buildPacket
+import io.ktor.utils.io.core.writeFully
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
