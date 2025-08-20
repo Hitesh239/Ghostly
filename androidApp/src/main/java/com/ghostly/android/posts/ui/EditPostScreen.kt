@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -50,6 +51,13 @@ import com.ghostly.android.posts.EditPostUiState
 import com.ghostly.posts.models.Post
 import com.ghostly.posts.models.Tag
 import org.koin.androidx.compose.koinViewModel
+import android.app.Activity
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,6 +115,45 @@ fun EditPostScreen(
                     }
                 },
                 actions = {
+                    val context = LocalContext.current
+                    val activity = context as? Activity
+                    var isUploading by remember { mutableStateOf(false) }
+                    val pickImage = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.GetContent(),
+                        onResult = { uri: Uri? ->
+                            if (uri != null) {
+                                val resolver = context.contentResolver
+                                val name = uri.lastPathSegment?.substringAfterLast('/') ?: "image.jpg"
+                                val type = resolver.getType(uri) ?: "image/jpeg"
+                                scope.launch {
+                                    isUploading = true
+                                    try {
+                                        val bytes = withContext(Dispatchers.IO) {
+                                            resolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
+                                        }
+                                        if (bytes.isNotEmpty()) {
+                                            viewModel.uploadImageAndSetFeature(bytes, name, type)
+                                        }
+                                    } finally {
+                                        isUploading = false
+                                    }
+                                }
+                            }
+                        }
+                    )
+                    IconButton(onClick = { pickImage.launch("image/*") }) {
+                        if (isUploading) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Image,
+                                contentDescription = stringResource(R.string.add_image)
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = {
                             viewModel.savePost()

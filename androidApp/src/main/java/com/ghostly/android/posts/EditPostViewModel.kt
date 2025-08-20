@@ -146,4 +146,21 @@ class EditPostViewModel(
             }
         }
     }
+
+    fun setFeatureImageUrl(url: String) {
+        val currentPost = _post.value ?: return
+        _post.value = currentPost.copy(featureImage = url)
+    }
+
+    fun uploadImageAndSetFeature(bytes: ByteArray, fileName: String, mimeType: String) {
+        viewModelScope.launch {
+            val result = postRepository.uploadImage(fileName, bytes, mimeType)
+            if (result is com.ghostly.network.models.Result.Success) {
+                val url = result.data ?: return@launch
+                setFeatureImageUrl(url)
+            } else if (result is com.ghostly.network.models.Result.Error) {
+                _uiState.value = EditPostUiState.Error(result.message ?: "Upload failed")
+            }
+        }
+    }
 } 

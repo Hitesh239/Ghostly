@@ -37,6 +37,7 @@
     <string name="app_version">App Version: %1$s</string>
     <string name="publish">Publish</string>
     <string name="unpublish">Unpublish</string>
+    <string name="add_image">Add image</string>
     <string name="published_successfully">Published Successfully</string>
     <string name="publishing_failed">Publishing Failed</string>
     <string name="publishing_failed_unauthorized">Publishing Failed. Unauthorized</string>
