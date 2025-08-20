@@ -39,6 +39,8 @@ interface PostRepository {
     suspend fun getPostById(id: String): Flow<Post?>
     
     suspend fun refreshPostFromServer(id: String): Result<Post>
+
+    suspend fun uploadImage(fileName: String, bytes: ByteArray, mimeType: String): Result<String>
 }
 
 @OptIn(ExperimentalPagingApi::class)
@@ -211,6 +213,17 @@ class PostRepositoryImpl(
                 )
                 postDataSource.updatePost(updatedPost)
                 Result.Success(updatedPost)
+            }
+            is Result.Error -> Result.Error(result.errorCode, result.message)
+        }
+    }
+
+    override suspend fun uploadImage(fileName: String, bytes: ByteArray, mimeType: String): Result<String> {
+        return when (val result = apiService.uploadImage(fileName, bytes, mimeType)) {
+            is Result.Success -> {
+                val url = result.data?.images?.firstOrNull()?.url
+                    ?: return Result.Error(-1, "No image URL returned")
+                Result.Success(url)
             }
             is Result.Error -> Result.Error(result.errorCode, result.message)
         }
