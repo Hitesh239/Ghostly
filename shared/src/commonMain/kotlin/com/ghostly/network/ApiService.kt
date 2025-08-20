@@ -312,51 +312,99 @@ class ApiServiceImpl(
         println("ApiService: Uploading image - size: ${bytes.size}, type: $mimeType, name: $fileName")
         println("ApiService: Using URL: ${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}")
         
-        // Try approach 1: Simplified multipart with auto Content-Type
-        try {
-            val response: HttpResponse =
-                client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                    header("Authorization", "Ghost ${token.token}")
-                    header("Accept-Version", "v5")
-                    setBody(
-                        MultiPartFormDataContent(
-                            formData {
-                                // Let Ktor auto-detect Content-Type
-                                append("file", bytes, Headers.build {
-                                    append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
-                                })
-                            }
-                        )
+        // Try multiple approaches in sequence
+        suspend fun tryApproach1(): HttpResponse {
+            println("ApiService: Trying approach 1 - v4 API with explicit Content-Type")
+            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                header("Authorization", "Ghost ${token.token}")
+                header("Accept-Version", "v4")
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append("file", bytes, Headers.build {
+                                append(HttpHeaders.ContentType, mimeType)
+                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
+                            })
+                        }
                     )
-                }
-            
-            println("ApiService: Response status: ${response.status}")
-            println("ApiService: Response headers: ${response.headers}")
-            
-            when {
-                response.status == HttpStatusCode.Unauthorized -> {
-                    return@withContext Result.Error(
-                        HttpStatusCode.Unauthorized.value,
-                        "Invalid API Key"
-                    )
-                }
-
-                response.status != HttpStatusCode.OK -> {
-                    val errorBody = response.bodyAsText()
-                    println("ApiService: Error response body: $errorBody")
-                    return@withContext Result.Error(response.status.value, errorBody)
-                }
-
-                else -> {
-                    val result = response.body<ImageUploadResponse>()
-                    println("ApiService: Upload successful, image URL: ${result.images.firstOrNull()?.url}")
-                    Result.Success(result)
-                }
+                )
             }
-        } catch (e: Exception) {
-            println("ApiService: Upload exception: ${e.message}")
-            return@withContext Result.Error(-1, "Upload failed: ${e.message}")
         }
+        
+        suspend fun tryApproach2(): HttpResponse {
+            println("ApiService: Trying approach 2 - InputProvider streaming with v5")
+            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                header("Authorization", "Ghost ${token.token}")
+                header("Accept-Version", "v5")
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append("file", InputProvider { buildPacket { writeFully(bytes) } }, Headers.build {
+                                append(HttpHeaders.ContentType, mimeType)
+                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
+                            })
+                        }
+                    )
+                )
+            }
+        }
+        
+        suspend fun tryApproach3(): HttpResponse {
+            println("ApiService: Trying approach 3 - uploadcare field name with v5")
+            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                header("Authorization", "Ghost ${token.token}")
+                header("Accept-Version", "v5")
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append("uploadcare", bytes, Headers.build {
+                                append(HttpHeaders.ContentType, mimeType)
+                                append(HttpHeaders.ContentDisposition, "form-data; name=\"uploadcare\"; filename=\"$fileName\"")
+                            })
+                        }
+                    )
+                )
+            }
+        }
+        
+        val approaches = listOf(::tryApproach1, ::tryApproach2, ::tryApproach3)
+        
+        // Try each approach
+        for ((index, approach) in approaches.withIndex()) {
+            try {
+                val response = approach()
+                
+                println("ApiService: Approach ${index + 1} - Response status: ${response.status}")
+                println("ApiService: Approach ${index + 1} - Response headers: ${response.headers}")
+                
+                when {
+                    response.status == HttpStatusCode.Unauthorized -> {
+                        return@withContext Result.Error(
+                            HttpStatusCode.Unauthorized.value,
+                            "Invalid API Key"
+                        )
+                    }
+
+                    response.status == HttpStatusCode.OK -> {
+                        val result = response.body<ImageUploadResponse>()
+                        println("ApiService: Approach ${index + 1} SUCCESS! Image URL: ${result.images.firstOrNull()?.url}")
+                        return@withContext Result.Success(result)
+                    }
+
+                    else -> {
+                        val errorBody = response.bodyAsText()
+                        println("ApiService: Approach ${index + 1} failed with ${response.status.value}: $errorBody")
+                        // Continue to next approach
+                    }
+                }
+            } catch (e: Exception) {
+                println("ApiService: Approach ${index + 1} exception: ${e.message}")
+                // Continue to next approach
+            }
+        }
+        
+        // All approaches failed
+        return@withContext Result.Error(-1, "All upload approaches failed. Please check Ghost server configuration.")
     }
 }
 
