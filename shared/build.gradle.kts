@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    // alias(libs.plugins.kotlinCocoapods)
+    alias(libs.plugins.kotlinCocoapods)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.room)
     id("com.google.devtools.ksp")
@@ -45,6 +45,9 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.client.logging)
             implementation(libs.kotlinx.datetime)
             implementation(libs.koin.core)
             implementation(libs.cash.paging)
