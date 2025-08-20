@@ -314,10 +314,10 @@ class ApiServiceImpl(
         
         // Try multiple approaches in sequence
         suspend fun tryApproach1(): HttpResponse {
-            println("ApiService: Trying approach 1 - v4 API with explicit Content-Type")
+            println("ApiService: Trying approach 1 - v6 API with explicit headers")
             return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
                 header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v4")
+                header("Accept-Version", "v6")
                 setBody(
                     MultiPartFormDataContent(
                         formData {
@@ -332,14 +332,15 @@ class ApiServiceImpl(
         }
         
         suspend fun tryApproach2(): HttpResponse {
-            println("ApiService: Trying approach 2 - InputProvider streaming with v5")
+            println("ApiService: Trying approach 2 - v6 with purpose parameter")
             return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
                 header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v5")
+                header("Accept-Version", "v6")
                 setBody(
                     MultiPartFormDataContent(
                         formData {
-                            append("file", InputProvider { buildPacket { writeFully(bytes) } }, Headers.build {
+                            append("purpose", "image")
+                            append("file", bytes, Headers.build {
                                 append(HttpHeaders.ContentType, mimeType)
                                 append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
                             })
@@ -350,16 +351,17 @@ class ApiServiceImpl(
         }
         
         suspend fun tryApproach3(): HttpResponse {
-            println("ApiService: Trying approach 3 - uploadcare field name with v5")
+            println("ApiService: Trying approach 3 - v6 with ref parameter")
             return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
                 header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v5")
+                header("Accept-Version", "v6")
                 setBody(
                     MultiPartFormDataContent(
                         formData {
-                            append("uploadcare", bytes, Headers.build {
+                            append("ref", fileName)
+                            append("file", bytes, Headers.build {
                                 append(HttpHeaders.ContentType, mimeType)
-                                append(HttpHeaders.ContentDisposition, "form-data; name=\"uploadcare\"; filename=\"$fileName\"")
+                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
                             })
                         }
                     )
@@ -367,7 +369,43 @@ class ApiServiceImpl(
             }
         }
         
-        val approaches = listOf(::tryApproach1, ::tryApproach2, ::tryApproach3)
+        suspend fun tryApproach4(): HttpResponse {
+            println("ApiService: Trying approach 4 - v6 complete format with purpose + ref")
+            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                header("Authorization", "Ghost ${token.token}")
+                header("Accept-Version", "v6")
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append("purpose", "image")
+                            append("ref", fileName)
+                            append("file", bytes, Headers.build {
+                                append(HttpHeaders.ContentType, mimeType)
+                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
+                            })
+                        }
+                    )
+                )
+            }
+        }
+        
+        suspend fun tryApproach5(): HttpResponse {
+            println("ApiService: Trying approach 5 - Simple v6 with minimal headers")
+            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+                header("Authorization", "Ghost ${token.token}")
+                header("Accept-Version", "v6")
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            // Minimal approach - let Ktor handle everything
+                            append("file", bytes)
+                        }
+                    )
+                )
+            }
+        }
+        
+        val approaches = listOf(::tryApproach1, ::tryApproach2, ::tryApproach3, ::tryApproach4, ::tryApproach5)
         
         // Try each approach
         for ((index, approach) in approaches.withIndex()) {
