@@ -29,6 +29,9 @@ class EditPostViewModel(
     private val _uiState = MutableStateFlow<EditPostUiState>(EditPostUiState.Idle)
     val uiState: StateFlow<EditPostUiState> = _uiState.asStateFlow()
 
+    private val _isUploading = MutableStateFlow(false)
+    val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
+
     fun initializePost(post: Post) {
         Log.d("EditPostViewModel", "Initializing post with title: ${post.title}")
         _post.value = post
@@ -154,12 +157,17 @@ class EditPostViewModel(
 
     fun uploadImageAndSetFeature(bytes: ByteArray, fileName: String, mimeType: String) {
         viewModelScope.launch {
-            val result = postRepository.uploadImage(fileName, bytes, mimeType)
-            if (result is com.ghostly.network.models.Result.Success) {
-                val url = result.data ?: return@launch
-                setFeatureImageUrl(url)
-            } else if (result is com.ghostly.network.models.Result.Error) {
-                _uiState.value = EditPostUiState.Error(result.message ?: "Upload failed")
+            _isUploading.value = true
+            try {
+                val result = postRepository.uploadImage(fileName, bytes, mimeType)
+                if (result is com.ghostly.network.models.Result.Success) {
+                    val url = result.data ?: return@launch
+                    setFeatureImageUrl(url)
+                } else if (result is com.ghostly.network.models.Result.Error) {
+                    _uiState.value = EditPostUiState.Error(result.message ?: "Upload failed")
+                }
+            } finally {
+                _isUploading.value = false
             }
         }
     }
