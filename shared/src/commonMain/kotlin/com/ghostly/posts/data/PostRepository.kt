@@ -73,7 +73,7 @@ class PostRepositoryImpl(
     }
 
     override suspend fun updatePost(post: Post): Result<Post> {
-        println("PostRepository: Updating post ${post.id} with ${post.tags.size} tags")
+
         
         // Create the update request with the complete tag list
         val request = UpdatePostRequest(
@@ -84,7 +84,6 @@ class PostRepositoryImpl(
                     content = post.content,
                     excerpt = post.excerpt,
                     tags = post.tags.map { tag ->
-                        println("PostRepository: Including tag: ${tag.name} (id: ${tag.id})")
                         com.ghostly.posts.models.TagDto(
                             id = tag.id,
                             name = tag.name,
@@ -99,10 +98,10 @@ class PostRepositoryImpl(
             )
         )
 
-        println("PostRepository: Sending PUT request to update post")
+
         return when (val result = apiService.updatePost(post.id, request)) {
             is Result.Success -> {
-                println("PostRepository: Server update successful")
+
                 val updatedPost = result.data?.posts?.firstOrNull()?.let { postDto ->
                     Post(
                         id = postDto.id,
@@ -135,14 +134,14 @@ class PostRepositoryImpl(
                     )
                 } ?: return Result.Error(-1, "No post data received")
 
-                println("PostRepository: Updated post has ${updatedPost.tags.size} tags")
+
                 // Update local database with the server response
                 postDataSource.updatePost(updatedPost)
                 Result.Success(updatedPost)
             }
 
             is Result.Error -> {
-                println("PostRepository: Server update failed: ${result.message}")
+
                 Result.Error(result.errorCode, result.message)
             }
         }

@@ -79,13 +79,7 @@ fun EditPostScreen(
         viewModel.initializePost(post)
     }
 
-    // Debug: Log state changes
-    LaunchedEffect(currentPost) {
-        Log.d(
-            "EditPostViewModel",
-            "EditPostScreen: Post state updated - Title: ${currentPost?.title}, Tags: ${currentPost?.tags?.size}"
-        )
-    }
+
 
     // Handle UI state changes
     LaunchedEffect(uiState) {
@@ -138,9 +132,7 @@ fun EditPostScreen(
                                         val bytes = withContext(Dispatchers.IO) {
                                             resolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
                                         }
-                                        Log.d("EditPost", "Picked image byte size: ${bytes.size}")
-                                        Log.d("EditPost", "Picked image mime type: $type")
-                                        Log.d("EditPost", "Picked image filename: $name")
+
                                         if (bytes.isNotEmpty()) {
                                             viewModel.uploadImageAndSetFeature(bytes, name, type)
                                         }

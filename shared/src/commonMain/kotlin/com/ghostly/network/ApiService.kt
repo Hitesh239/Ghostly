@@ -37,8 +37,7 @@ import io.ktor.http.contentType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
+
 
 interface ApiService {
     suspend fun getPosts(page: Int, pageSize: Int): Result<PostsResponse>
@@ -237,11 +236,7 @@ class ApiServiceImpl(
             val token =
                 tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
             
-            println("ApiService: Sending PUT request to update post $postId")
-            println("ApiService: Request body: ${request.posts.firstOrNull()?.tags?.size} tags")
-            request.posts.firstOrNull()?.tags?.forEach { tag ->
-                println("ApiService: Tag in request: ${tag.name} (id: ${tag.id})")
-            }
+
             
             val response: HttpResponse =
                 client.put("${loginDetails.domainUrl}/api/admin/posts/${postId}/") {
@@ -259,12 +254,11 @@ class ApiServiceImpl(
                 }
 
                 response.status != HttpStatusCode.OK -> {
-                    println("ApiService: Update failed with status ${response.status.value}: ${response.bodyAsText()}")
                     return@withContext Result.Error(response.status.value, response.bodyAsText())
                 }
 
                 else -> {
-                    println("ApiService: Update successful")
+
                     Result.Success(response.body<UpdatePostResponse>())
                 }
             }
@@ -300,241 +294,54 @@ class ApiServiceImpl(
             }
         }
 
-    @OptIn(ExperimentalEncodingApi::class)
     override suspend fun uploadImage(
         fileName: String,
         bytes: ByteArray,
         mimeType: String,
     ): Result<ImageUploadResponse> = withContext(Dispatchers.IO) {
-        val loginDetails =
-            getLoginDetails() ?: return@withContext Result.Error(-1, "Invalid Login Details")
+        try {
+            val loginDetails = getLoginDetails() 
+                ?: return@withContext Result.Error(-1, "Invalid Login Details")
 
-        val token =
-            tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
+            val token = tryAndGetToken() 
+                ?: return@withContext Result.Error(-1, "Unable to generate token")
 
-        println("ApiService: Uploading image - size: ${bytes.size}, type: $mimeType, name: $fileName")
-        println("ApiService: Using URL: ${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}")
-        
-        // Try multiple approaches in sequence
-        suspend fun tryApproach1(): HttpResponse {
-            println("ApiService: Trying approach 1 - v6 API with explicit headers")
-            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v6")
-                setBody(
-                    MultiPartFormDataContent(
-                        formData {
-                            append("file", bytes, Headers.build {
-                                append(HttpHeaders.ContentType, mimeType)
-                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
-                            })
-                        }
-                    )
-                )
-            }
-        }
-        
-        suspend fun tryApproach2(): HttpResponse {
-            println("ApiService: Trying approach 2 - v6 with purpose parameter")
-            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v6")
-                setBody(
-                    MultiPartFormDataContent(
-                        formData {
-                            append("purpose", "image")
-                            append("file", bytes, Headers.build {
-                                append(HttpHeaders.ContentType, mimeType)
-                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
-                            })
-                        }
-                    )
-                )
-            }
-        }
-        
-        suspend fun tryApproach3(): HttpResponse {
-            println("ApiService: Trying approach 3 - v6 with ref parameter")
-            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v6")
-                setBody(
-                    MultiPartFormDataContent(
-                        formData {
-                            append("ref", fileName)
-                            append("file", bytes, Headers.build {
-                                append(HttpHeaders.ContentType, mimeType)
-                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
-                            })
-                        }
-                    )
-                )
-            }
-        }
-        
-        suspend fun tryApproach4(): HttpResponse {
-            println("ApiService: Trying approach 4 - v6 complete format with purpose + ref")
-            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v6")
-                setBody(
-                    MultiPartFormDataContent(
-                        formData {
-                            append("purpose", "image")
-                            append("ref", fileName)
-                            append("file", bytes, Headers.build {
-                                append(HttpHeaders.ContentType, mimeType)
-                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
-                            })
-                        }
-                    )
-                )
-            }
-        }
-        
-        suspend fun tryApproach5(): HttpResponse {
-            println("ApiService: Trying approach 5 - Base64 approach (debug)")
-            // Try base64 encoded approach if file size is the issue
-            val base64Image = Base64.encode(bytes)
-            println("ApiService: Base64 size: ${base64Image.length}")
-            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v6")
-                setBody(
-                    MultiPartFormDataContent(
-                        formData {
-                            append("file", base64Image.toByteArray(), Headers.build {
-                                append(HttpHeaders.ContentType, "application/octet-stream")
-                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
-                            })
-                        }
-                    )
-                )
-            }
-        }
-        
-        suspend fun tryApproach6(): HttpResponse {
-            println("ApiService: Trying approach 6 - Manual multipart with BINARY data (not base64)")
             val boundary = "----formdata-ktor-${System.currentTimeMillis()}"
             
-            // Create multipart with BINARY data (not base64!)
-            val boundaryBytes = boundary.toByteArray()
+            // Construct multipart/form-data manually with binary image data
             val headerBytes = buildString {
                 append("--$boundary\r\n")
                 append("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n")
                 append("Content-Type: $mimeType\r\n")
                 append("\r\n")
             }.toByteArray()
+            
             val footerBytes = "\r\n--$boundary--\r\n".toByteArray()
-            
-            // Combine: header + binary image data + footer
             val multipartBytes = headerBytes + bytes + footerBytes
-            
-            println("ApiService: Manual multipart with binary data - total size: ${multipartBytes.size}")
-            println("ApiService: Header: ${String(headerBytes)}")
-            
-            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
+
+            val response = client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
                 header("Authorization", "Ghost ${token.token}")
                 header("Accept-Version", "v6")
                 header("Content-Type", "multipart/form-data; boundary=$boundary")
                 setBody(multipartBytes)
             }
-        }
-        
-        suspend fun tryApproach7(): HttpResponse {
-            println("ApiService: Trying approach 7 - Small test image to check size limits")
-            // Create a tiny 1x1 PNG image for testing
-            val tinyPngBytes = byteArrayOf(
-                0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
-                0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-                0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-                0x08, 0x02, 0x00, 0x00, 0x00, 0x90.toByte(), 0x77.toByte(), 0x53.toByte(),
-                0xDE.toByte(), 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54,
-                0x08, 0xD7.toByte(), 0x63, 0xF8.toByte(), 0x0F, 0x00, 0x00, 0x01,
-                0x00, 0x01, 0x5C.toByte(), 0xCC.toByte(), 0x5D.toByte(), 0xB0.toByte(), 0x00, 0x00,
-                0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE.toByte(), 0x42.toByte(), 0x60.toByte(), 0x82.toByte()
-            )
-            
-            println("ApiService: Testing with tiny PNG (${tinyPngBytes.size} bytes)")
-            
-            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v6")
-                setBody(
-                    MultiPartFormDataContent(
-                        formData {
-                            append("file", tinyPngBytes, Headers.build {
-                                append(HttpHeaders.ContentType, "image/png")
-                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"test.png\"")
-                            })
-                        }
-                    )
-                )
-            }
-        }
-        
-        suspend fun tryApproach8(): HttpResponse {
-            println("ApiService: Trying approach 8 - Ktor multipart with binary enforcement")
-            return client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v6")
-                // Force Ktor to send binary data correctly
-                setBody(
-                    MultiPartFormDataContent(
-                        formData {
-                            // Use the simplest possible multipart format
-                            append("file", bytes, Headers.build {
-                                append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"$fileName\"")
-                                // Don't specify Content-Type - let it be auto-detected as binary
-                            })
-                        }
-                    )
-                )
-            }
-        }
-        
-        val approaches = listOf(::tryApproach6, ::tryApproach8, ::tryApproach1, ::tryApproach2, ::tryApproach3, ::tryApproach4, ::tryApproach5, ::tryApproach7)
-        
-        // Try each approach
-        for ((index, approach) in approaches.withIndex()) {
-            try {
-                val response = approach()
-                
-                println("ApiService: Approach ${index + 1} - Response status: ${response.status}")
-                println("ApiService: Approach ${index + 1} - Response headers: ${response.headers}")
-                
-                when {
-                    response.status == HttpStatusCode.Unauthorized -> {
-                        return@withContext Result.Error(
-                            HttpStatusCode.Unauthorized.value,
-                            "Invalid API Key"
-                        )
-                    }
 
-                    response.status == HttpStatusCode.OK || response.status == HttpStatusCode.Created -> {
-                        val result = response.body<ImageUploadResponse>()
-                        println("ApiService: Approach ${index + 1} SUCCESS! Image URL: ${result.images.firstOrNull()?.url}")
-                        return@withContext Result.Success(result)
-                    }
-
-                    else -> {
-                        val errorBody = response.bodyAsText()
-                        println("ApiService: Approach ${index + 1} failed with ${response.status.value}: $errorBody")
-                        // Continue to next approach
-                    }
+            return@withContext when {
+                response.status == HttpStatusCode.Unauthorized -> {
+                    Result.Error(HttpStatusCode.Unauthorized.value, "Invalid API Key")
                 }
-            } catch (e: Exception) {
-                println("ApiService: Approach ${index + 1} exception: ${e.message}")
-                // Continue to next approach
+                response.status == HttpStatusCode.OK || response.status == HttpStatusCode.Created -> {
+                    val result = response.body<ImageUploadResponse>()
+                    Result.Success(result)
+                }
+                else -> {
+                    val errorBody = response.bodyAsText()
+                    Result.Error(response.status.value, errorBody)
+                }
             }
+        } catch (e: Exception) {
+            return@withContext Result.Error(-1, "Upload failed: ${e.message}")
         }
-        
-        // All approaches failed
-        return@withContext Result.Error(-1, "All upload approaches failed. Please check Ghost server configuration.")
     }
 }
 
-fun logUnlimited(tag: String, string: String) {
-    val maxLogSize = 1000
-    string.chunked(maxLogSize).forEach { println("$tag: $it ") }
-}
