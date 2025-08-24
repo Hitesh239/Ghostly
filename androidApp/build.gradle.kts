@@ -68,6 +68,5 @@ dependencies {
     implementation(libs.androidx.paging.compose)
     implementation(libs.accompanist.flowlayout)
 
-
     debugImplementation(libs.compose.ui.tooling)
 }

@@ -46,7 +46,9 @@ fun PostsScreen(
 
     // Debug: Log the state
     LaunchedEffect(posts.loadState, posts.itemCount) {
-
+        println("PostsScreen: Load state: ${posts.loadState}")
+        println("PostsScreen: Item count: ${posts.itemCount}")
+        println("PostsScreen: Selected filter: $selectedFilter")
     }
 
     Column(

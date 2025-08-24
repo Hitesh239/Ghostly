@@ -4,7 +4,6 @@ import com.ghostly.datastore.LoginDetailsStore
 import com.ghostly.login.models.LoginDetails
 import com.ghostly.login.models.SiteResponse
 import com.ghostly.network.models.Result
-import com.ghostly.network.models.ImageUploadResponse
 import com.ghostly.network.models.Token
 import com.ghostly.posts.models.PostsResponse
 import com.ghostly.posts.models.UpdatePostRequest
@@ -25,19 +24,9 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.appendPathSegments
 import io.ktor.http.contentType
-import io.ktor.http.headers
-import io.ktor.client.request.forms.MultiPartFormDataContent
-import io.ktor.client.request.forms.formData
-import io.ktor.client.request.forms.InputProvider
-import io.ktor.utils.io.core.buildPacket
-import io.ktor.utils.io.core.writeFully
-import io.ktor.http.Headers
-import io.ktor.http.HttpHeaders
-import io.ktor.http.contentType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-
 
 interface ApiService {
     suspend fun getPosts(page: Int, pageSize: Int): Result<PostsResponse>
@@ -45,7 +34,6 @@ interface ApiService {
     suspend fun publishPost(postId: String, request: UpdateRequestWrapper): Result<PostsResponse>
     suspend fun updatePost(postId: String, request: UpdatePostRequest): Result<UpdatePostResponse>
     suspend fun getPostById(postId: String): Result<UpdatePostResponse>
-    suspend fun uploadImage(fileName: String, bytes: ByteArray, mimeType: String): Result<ImageUploadResponse>
 
     suspend fun <T> get(
         endpoint: Endpoint,
@@ -235,9 +223,7 @@ class ApiServiceImpl(
 
             val token =
                 tryAndGetToken() ?: return@withContext Result.Error(-1, "Unable to generate token")
-            
 
-            
             val response: HttpResponse =
                 client.put("${loginDetails.domainUrl}/api/admin/posts/${postId}/") {
                     header("Authorization", "Ghost ${token.token}")
@@ -254,11 +240,11 @@ class ApiServiceImpl(
                 }
 
                 response.status != HttpStatusCode.OK -> {
+                    println("ApiService: Update failed with status ${response.status.value}: ${response.bodyAsText()}")
                     return@withContext Result.Error(response.status.value, response.bodyAsText())
                 }
 
                 else -> {
-
                     Result.Success(response.body<UpdatePostResponse>())
                 }
             }
@@ -293,55 +279,9 @@ class ApiServiceImpl(
                 }
             }
         }
-
-    override suspend fun uploadImage(
-        fileName: String,
-        bytes: ByteArray,
-        mimeType: String,
-    ): Result<ImageUploadResponse> = withContext(Dispatchers.IO) {
-        try {
-            val loginDetails = getLoginDetails() 
-                ?: return@withContext Result.Error(-1, "Invalid Login Details")
-
-            val token = tryAndGetToken() 
-                ?: return@withContext Result.Error(-1, "Unable to generate token")
-
-            val boundary = "----formdata-ktor-${System.currentTimeMillis()}"
-            
-            // Construct multipart/form-data manually with binary image data
-            val headerBytes = buildString {
-                append("--$boundary\r\n")
-                append("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n")
-                append("Content-Type: $mimeType\r\n")
-                append("\r\n")
-            }.toByteArray()
-            
-            val footerBytes = "\r\n--$boundary--\r\n".toByteArray()
-            val multipartBytes = headerBytes + bytes + footerBytes
-
-            val response = client.post("${loginDetails.domainUrl}${Endpoint.IMAGES_UPLOAD.path}") {
-                header("Authorization", "Ghost ${token.token}")
-                header("Accept-Version", "v6")
-                header("Content-Type", "multipart/form-data; boundary=$boundary")
-                setBody(multipartBytes)
-            }
-
-            return@withContext when {
-                response.status == HttpStatusCode.Unauthorized -> {
-                    Result.Error(HttpStatusCode.Unauthorized.value, "Invalid API Key")
-                }
-                response.status == HttpStatusCode.OK || response.status == HttpStatusCode.Created -> {
-                    val result = response.body<ImageUploadResponse>()
-                    Result.Success(result)
-                }
-                else -> {
-                    val errorBody = response.bodyAsText()
-                    Result.Error(response.status.value, errorBody)
-                }
-            }
-        } catch (e: Exception) {
-            return@withContext Result.Error(-1, "Upload failed: ${e.message}")
-        }
-    }
 }
 
+fun logUnlimited(tag: String, string: String) {
+    val maxLogSize = 1000
+    string.chunked(maxLogSize).forEach { println("$tag: $it ") }
+}
