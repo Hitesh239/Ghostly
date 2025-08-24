@@ -40,24 +40,17 @@ class PostDetailViewModel(
     }
     
     suspend fun refreshPostFromServer(postId: String) {
-        println("PostDetailViewModel: Refreshing post $postId from server")
         when (val result = getPostsUseCase.refreshPostFromServer(postId)) {
             is Result.Success -> {
                 val updatedPost = result.data
                 if (updatedPost != null) {
-                    println("PostDetailViewModel: Server refresh successful, updating local state")
                     _post.value = updatedPost
-                    
                     // Update local database with server data
                     postDataSource.updatePost(updatedPost)
-                    println("PostDetailViewModel: Local database updated with server data")
-                } else {
-                    println("PostDetailViewModel: Server returned null post data")
                 }
             }
             is Result.Error -> {
                 // If refresh fails, keep the current post
-                println("PostDetailViewModel: Failed to refresh post from server: ${result.message}")
             }
         }
     }
