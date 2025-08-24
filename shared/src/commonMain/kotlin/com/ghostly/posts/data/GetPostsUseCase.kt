@@ -21,7 +21,9 @@ interface GetPostsUseCase {
 
     suspend fun getOnePost(): Result<PostsResponse>
 
-    suspend fun getPostById(id: String): Flow<Post>
+    suspend fun getPostById(id: String): Flow<Post?>
+    
+    suspend fun refreshPostFromServer(id: String): Result<Post>
 }
 
 internal class GetPostsUseCaseImpl(
@@ -42,7 +44,11 @@ internal class GetPostsUseCaseImpl(
         return@withContext postRepository.getOnePost()
     }
 
-    override suspend fun getPostById(id: String): Flow<Post> {
+    override suspend fun getPostById(id: String): Flow<Post?> {
         return postRepository.getPostById(id)
+    }
+    
+    override suspend fun refreshPostFromServer(id: String): Result<Post> {
+        return postRepository.refreshPostFromServer(id)
     }
 }

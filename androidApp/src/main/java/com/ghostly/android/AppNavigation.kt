@@ -9,6 +9,7 @@ import androidx.navigation.toRoute
 import com.ghostly.android.home.HomeScreen
 import com.ghostly.android.login.ui.LoginScreen
 import com.ghostly.android.posts.NavigationMaps
+import com.ghostly.android.posts.ui.EditPostScreen
 import com.ghostly.android.posts.ui.PostDetailScreen
 import com.ghostly.android.settings.StaffSettingsScreen
 import com.ghostly.database.entities.PostWithAuthorsAndTags
@@ -25,6 +26,9 @@ object Destination {
 
     @Serializable
     object StaffSettings
+
+    @Serializable
+    data class EditPost(val post: Post)
 }
 
 @Composable
@@ -50,8 +54,13 @@ fun AppNavigation(
         ) { backStackEntry ->
             val post = backStackEntry.toRoute<Post>()
             PostDetailScreen(
-                navController = navController,
                 post = post,
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onEditClick = {
+                    navController.navigate(Destination.EditPost(it))
+                }
             )
         }
         composable<Destination.Home> {
@@ -72,6 +81,20 @@ fun AppNavigation(
         composable<Destination.StaffSettings> {
             StaffSettingsScreen(
                 navController = navController
+            )
+        }
+        composable<Destination.EditPost>(
+            typeMap = NavigationMaps.typeMap
+        ) { backStackEntry ->
+            val editPost = backStackEntry.toRoute<Destination.EditPost>()
+            EditPostScreen(
+                post = editPost.post,
+                onEditSuccess = {
+                    navController.navigateUp()
+                },
+                onBackClick = {
+                    navController.navigateUp()
+                }
             )
         }
     }

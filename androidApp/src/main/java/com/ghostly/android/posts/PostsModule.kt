@@ -8,4 +8,5 @@ import org.koin.dsl.module
 val postsModule = module {
     viewModelOf(::PostDetailViewModel)
     viewModelOf(::PostsViewModel)
+    viewModelOf(::EditPostViewModel)
 }
